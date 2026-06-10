@@ -1,0 +1,14 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Base.Theme.OBD" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="android:windowBackground">@color/darkBackground</item>
+        <item name="android:textColorPrimary">@color/primaryTextColor</item>
+        <item name="android:textColorSecondary">@color/secondaryTextColor</item>
+        <item name="colorPrimary">@color/darkPrimary</item>
+        <item name="colorPrimaryVariant">@color/darkPrimaryVariant</item>
+        <item name="colorSecondary">@color/darkSecondary</item>
+        <item name="colorAccent">@color/accentColor</item>
+        <item name="android:statusBarColor">@color/darkBackground</item>
+    </style>
+
+    <style name="Theme.OBD" parent="Base.Theme.OBD" />
+</resources>

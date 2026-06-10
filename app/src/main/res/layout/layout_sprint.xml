@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/darkBackground"
+    android:padding="8dp">
+
+    <!-- Timer + Info row -->
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:paddingBottom="4dp">
+
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center">
+
+            <TextView
+                android:id="@+id/tvSprintTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="---.-- s"
+                android:textSize="52sp"
+                android:textStyle="bold"
+                android:textColor="@color/accentColor" />
+
+            <TextView
+                android:id="@+id/tvSprintStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0 – 100 km/h Timer"
+                android:textSize="14sp"
+                android:textColor="@color/secondaryTextColor" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center">
+
+            <TextView
+                android:id="@+id/tvBestTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Best: ---"
+                android:textSize="20sp"
+                android:textColor="#FFD700" />
+
+            <TextView
+                android:id="@+id/tvSprintSpeed"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0 km/h"
+                android:textSize="22sp"
+                android:textColor="@color/primaryTextColor" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Control button -->
+    <Button
+        android:id="@+id/btnSprintControl"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:text="BEREIT MACHEN"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="@color/darkBackground"
+        android:backgroundTint="@color/accentColor" />
+
+    <!-- Speed chart -->
+    <com.github.mikephil.charting.charts.LineChart
+        android:id="@+id/sprintChart"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="8dp" />
+
+    <!-- History -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Letzte Läufe:"
+        android:textColor="@color/secondaryTextColor"
+        android:textSize="13sp"
+        android:paddingTop="6dp"
+        android:paddingBottom="2dp" />
+
+    <LinearLayout
+        android:id="@+id/sprintHistoryContainer"
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+</LinearLayout>

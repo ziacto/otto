@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#101820">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:gravity="center_horizontal">
+
+        <!-- Coolant Temperature Card -->
+        <LinearLayout
+            android:id="@+id/cardCoolant"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/card_bg"
+            android:orientation="vertical"
+            android:padding="20dp"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Coolant Temp"
+                android:textSize="18sp"
+                android:textColor="#A0A0A0"
+                android:layout_gravity="center_horizontal" />
+
+            <TextView
+                android:id="@+id/tvCoolant"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="-- °C"
+                android:textSize="42sp"
+                android:textStyle="bold"
+                android:textColor="#03A9F4"
+                android:layout_gravity="center_horizontal"
+                android:paddingTop="6dp" />
+        </LinearLayout>
+
+        <!-- Oil Temperature Card -->
+        <LinearLayout
+            android:id="@+id/cardOil"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/card_bg"
+            android:orientation="vertical"
+            android:padding="20dp"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Oil Temp"
+                android:textSize="18sp"
+                android:textColor="#A0A0A0"
+                android:layout_gravity="center_horizontal" />
+
+            <TextView
+                android:id="@+id/tvOil"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="-- °C"
+                android:textSize="42sp"
+                android:textStyle="bold"
+                android:textColor="#FF9800"
+                android:layout_gravity="center_horizontal"
+                android:paddingTop="6dp" />
+        </LinearLayout>
+
+        <!-- O2 Sensor Card -->
+        <LinearLayout
+            android:id="@+id/cardO2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/card_bg"
+            android:orientation="vertical"
+            android:padding="20dp"
+            android:layout_marginBottom="24dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="O2 Sensor"
+                android:textSize="18sp"
+                android:textColor="#A0A0A0"
+                android:layout_gravity="center_horizontal" />
+
+            <TextView
+                android:id="@+id/tvO2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="-- V"
+                android:textSize="42sp"
+                android:textStyle="bold"
+                android:textColor="#4CAF50"
+                android:layout_gravity="center_horizontal"
+                android:paddingTop="6dp" />
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>

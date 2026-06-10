@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/nav_welcome"
+            android:title="🏠  Welcome" />
+        <item
+            android:id="@+id/nav_speed"
+            android:title="🏎️  Speed" />
+        <item
+            android:id="@+id/nav_speed_rpm"
+            android:title="⏱️  Speed / RPM" />
+        <item
+            android:id="@+id/nav_temp_pressure"
+            android:title="🌡️  Temp / Pressure" />
+        <item
+            android:id="@+id/nav_electrical"
+            android:title="🔋  Electrical" />
+        <item
+            android:id="@+id/nav_thermalcontrol"
+            android:title="🔥  Thermal Control" />
+        <item
+            android:id="@+id/nav_enginecontrol"
+            android:title="⚙️  Engine Control" />
+        <item
+            android:id="@+id/nav_fuelcontrol"
+            android:title="⛽  Fuel Control" />
+        <item
+            android:id="@+id/nav_performancedynamic"
+            android:title="🏁  Performance" />
+        <item
+            android:id="@+id/nav_turbomonitoring"
+            android:title="💨  Turbo Monitoring" />
+        <item
+            android:id="@+id/nav_normal"
+            android:title="🌡️  Coolant / Oil" />
+        <item
+            android:id="@+id/nav_analytics"
+            android:title="📈  Daten-Analyse" />
+        <item
+            android:id="@+id/nav_sprint"
+            android:title="⏱  0–100 Timer" />
+    </group>
+
+    <item
+        android:id="@+id/nav_settings"
+        android:title="⚙️  Settings" />
+    <item
+        android:id="@+id/nav_disconnect"
+        android:title="❌  Disconnect" />
+</menu>

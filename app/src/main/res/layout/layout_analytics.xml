@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/darkBackground"
+    android:padding="8dp">
+
+    <com.github.mikephil.charting.charts.LineChart
+        android:id="@+id/analyticsChart"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:paddingTop="6dp"
+        android:paddingBottom="2dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Intervall:"
+            android:textColor="@color/secondaryTextColor"
+            android:textSize="14sp" />
+
+        <Spinner
+            android:id="@+id/spinnerInterval"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <Button
+            android:id="@+id/btnToggleRecording"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:text="Aufnahme starten"
+            android:textSize="12sp"
+            android:textColor="@color/darkBackground"
+            android:backgroundTint="@color/accentColor" />
+
+        <Button
+            android:id="@+id/btnClearData"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:layout_marginStart="4dp"
+            android:text="Clear"
+            android:textSize="12sp"
+            android:backgroundTint="#F44336" />
+
+    </LinearLayout>
+
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <LinearLayout
+            android:id="@+id/sensorCheckboxContainer"
+            android:orientation="horizontal"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingTop="2dp"
+            android:paddingBottom="4dp" />
+
+    </HorizontalScrollView>
+
+</LinearLayout>

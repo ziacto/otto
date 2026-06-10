@@ -1,0 +1,26 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme -->
+    <style name="Base.Theme.OBD" parent="Theme.Material3.DayNight.NoActionBar">
+
+        <!-- Hintergrundfarbe für den Dunkelmodus (dunkles Grau oder Schwarz) -->
+        <item name="android:windowBackground">@color/darkBackground</item>
+
+        <!-- Textfarbe für den Dunkelmodus (helles Grau oder Weiß) -->
+        <item name="android:textColorPrimary">@color/primaryTextColor</item>
+        <item name="android:textColorSecondary">@color/secondaryTextColor</item>
+
+        <!-- Primäre Akzentfarbe für den Dunkelmodus -->
+        <item name="colorPrimary">@color/darkPrimary</item>
+        <item name="colorPrimaryVariant">@color/darkPrimaryVariant</item>
+        <item name="colorSecondary">@color/darkSecondary</item>
+
+        <!-- Akzentfarbe für Buttons und andere UI-Elemente -->
+        <item name="colorAccent">@color/accentColor</item>
+
+        <!-- ActionBar / Toolbar Farbe für den Dunkelmodus -->
+        <item name="android:statusBarColor">@color/darkPrimary</item>
+
+
+
+    </style>
+</resources>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+        <!-- Dunkler Hintergrund -->
+        <color name="darkBackground">#121212</color>
+
+        <!-- Textfarben für den Dunkelmodus -->
+        <color name="primaryTextColor">#FFFFFF</color>  <!-- Weiß für primären Text -->
+        <color name="secondaryTextColor">#B0B0B0</color>  <!-- Hellgrau für sekundären Text -->
+
+        <!-- Farben für primäre und sekundäre Akzentfarben -->
+        <color name="darkPrimary">#6200EE</color>  <!-- Dunkelviolett für die primäre Farbe -->
+        <color name="darkPrimaryVariant">#3700B3</color>  <!-- Dunkleres Violett für Varianten -->
+        <color name="darkSecondary">#03DAC5</color>  <!-- Türkis für die sekundäre Farbe -->
+
+        <!-- Akzentfarbe für UI-Elemente -->
+        <color name="accentColor">#03DAC5</color>  <!-- Ein helles Türkis für Akzente -->
+
+
+</resources>
