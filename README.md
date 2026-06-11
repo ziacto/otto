@@ -1,7 +1,7 @@
 # OBD Monitor
 
 Android-App für Echtzeit-Fahrzeugdiagnose über Bluetooth OBD2-Adapter.  
-Auslesen verschiedener Daten, Langzeit-Datenanalyse und 0–100 km/h Zeitmessung.
+Auslesen verschiedener Daten und Langzeit-Datenanalyse.
 
 ---
 
