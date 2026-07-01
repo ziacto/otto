@@ -1,5 +1,9 @@
 # Otto — BMW OBD2 Diagnostics
 
+<p align="center">
+  <img src="docs/welcome.png" alt="Otto welcome screen" width="280">
+</p>
+
 Android app for real-time vehicle diagnostics over a Bluetooth ELM327 adapter.
 Built and tuned for the BMW E65 730li (N52) but works with any OBD-II vehicle
 that speaks ISO 15765-4 CAN. Includes AI-assisted repair estimation with

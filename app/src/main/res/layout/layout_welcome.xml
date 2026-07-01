@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    One-page Welcome. Everything fits above the fold on a typical 6" phone:
+    brand mark, car illustration, connect card, and a 2x2 feature grid of
+    what the app does. Extra prose lives in the drawer sections it points to.
+-->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -9,44 +14,47 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="22dp">
+        android:paddingStart="18dp"
+        android:paddingEnd="18dp"
+        android:paddingTop="14dp"
+        android:paddingBottom="10dp">
 
-        <!-- Brand mark -->
+        <!-- Brand -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/app_name"
-            android:textSize="48sp"
+            android:textSize="34sp"
             android:textStyle="bold"
             android:textColor="@color/textPrimary"
-            android:letterSpacing="0.06"
+            android:letterSpacing="0.05"
             android:layout_gravity="center_horizontal" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
-            android:layout_marginBottom="18dp"
-            android:letterSpacing="0.25"
+            android:letterSpacing="0.22"
             android:text="@string/app_tagline"
             android:textColor="@color/bmwBlau"
-            android:textSize="12sp" />
+            android:textSize="11sp"
+            android:paddingBottom="6dp" />
 
         <ImageView
             android:layout_width="match_parent"
-            android:layout_height="120dp"
+            android:layout_height="86dp"
             android:src="@drawable/car_view_side"
             android:scaleType="fitCenter"
-            android:layout_marginBottom="14dp" />
+            android:layout_marginBottom="8dp" />
 
-        <!-- Connection status + primary Connect/Disconnect button -->
+        <!-- Connection status + primary Connect button -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:background="@drawable/card_bg_accent"
-            android:padding="14dp"
-            android:layout_marginBottom="18dp">
+            android:padding="12dp"
+            android:layout_marginBottom="12dp">
 
             <TextView
                 android:id="@+id/tvWelcomeStatus"
@@ -54,19 +62,19 @@
                 android:layout_height="wrap_content"
                 android:text="● Not connected"
                 android:textColor="#FF6E6E"
-                android:textSize="13sp"
+                android:textSize="12sp"
                 android:textStyle="bold"
                 android:gravity="center"
-                android:paddingBottom="10dp" />
+                android:paddingBottom="8dp" />
 
             <Button
                 android:id="@+id/btnWelcomeConnect"
                 android:layout_width="match_parent"
-                android:layout_height="56dp"
+                android:layout_height="48dp"
                 android:background="@drawable/btn_pill_teal"
                 android:text="CONNECT TO CAR"
                 android:textColor="#000000"
-                android:textSize="14sp"
+                android:textSize="13sp"
                 android:textStyle="bold"
                 android:letterSpacing="0.15"
                 android:stateListAnimator="@null" />
@@ -74,135 +82,146 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Plug in the ELM327 adapter, ignition on. We'll walk you through Bluetooth, pairing and the ECU handshake step by step."
+                android:text="Plug in the ELM327 · ignition on · we'll walk you through it"
                 android:textColor="#B0B0B0"
                 android:textSize="10sp"
                 android:gravity="center"
-                android:lineSpacingExtra="2dp"
-                android:paddingTop="8dp" />
+                android:paddingTop="6dp" />
         </LinearLayout>
 
-        <!-- Feature cards -->
+        <!-- 2x2 feature grid — same content as the old scrolling cards,
+             collapsed to a compact glance. Titles first, one-line body. -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:baselineAligned="false">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/card_bg"
+                android:padding="10dp"
+                android:layout_marginEnd="4dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="📡  Live data"
+                    android:textColor="@color/textPrimary"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Animated engine, tile dashboard, warning lights."
+                    android:textColor="@color/textSecondary"
+                    android:textSize="10sp"
+                    android:lineSpacingExtra="1dp"
+                    android:paddingTop="2dp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/card_bg"
+                android:padding="10dp"
+                android:layout_marginStart="4dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🩺  Fault codes"
+                    android:textColor="@color/textPrimary"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="DME, DSC, EGS scans + BMW-specific causes."
+                    android:textColor="@color/textSecondary"
+                    android:textSize="10sp"
+                    android:lineSpacingExtra="1dp"
+                    android:paddingTop="2dp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:baselineAligned="false"
+            android:layout_marginTop="8dp">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/card_bg"
+                android:padding="10dp"
+                android:layout_marginEnd="4dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🤖  AI estimator"
+                    android:textColor="@color/textPrimary"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Photo → Dubai-priced repair + chat follow-up."
+                    android:textColor="@color/textSecondary"
+                    android:textSize="10sp"
+                    android:lineSpacingExtra="1dp"
+                    android:paddingTop="2dp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/card_bg"
+                android:padding="10dp"
+                android:layout_marginStart="4dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🗂  Garage"
+                    android:textColor="@color/textPrimary"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Trips, CBS, 30-day trends, CSV export."
+                    android:textColor="@color/textSecondary"
+                    android:textSize="10sp"
+                    android:lineSpacingExtra="1dp"
+                    android:paddingTop="2dp" />
+            </LinearLayout>
+        </LinearLayout>
+
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="WHAT THIS APP DOES"
-            android:textAppearance="@style/Text.Section"
-            android:paddingBottom="6dp" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="@drawable/card_bg"
-            android:padding="14dp"
-            android:layout_marginBottom="10dp">
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="📡   Live engine data over Bluetooth"
-                android:textColor="@color/textPrimary"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:paddingBottom="2dp" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Animated engine bay with coil-pack strobe, coolant glow, MAF airflow. Tile dashboard for all key sensors."
-                android:textColor="@color/textSecondary"
-                android:textSize="11sp"
-                android:lineSpacingExtra="2dp" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="@drawable/card_bg"
-            android:padding="14dp"
-            android:layout_marginBottom="10dp">
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="🩺   Fault codes with BMW-specific causes"
-                android:textColor="@color/textPrimary"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:paddingBottom="2dp" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Read DTCs from DME, DSC, EGS modules. Tap any code for a help sheet with parts, a YouTube search button, and one-tap AI assistance (ChatGPT, Claude, Gemini, Perplexity — all free)."
-                android:textColor="@color/textSecondary"
-                android:textSize="11sp"
-                android:lineSpacingExtra="2dp" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="@drawable/card_bg"
-            android:padding="14dp"
-            android:layout_marginBottom="10dp">
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="📊   Every sensor with description &amp; normal range"
-                android:textColor="@color/textPrimary"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:paddingBottom="2dp" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Drawer → Live Data. Powertrain, Thermal, Fuel &amp; Air, Electrical, Performance, Emissions — every PID with OK/WARN/OUT pill and a BMW-specific note."
-                android:textColor="@color/textSecondary"
-                android:textSize="11sp"
-                android:lineSpacingExtra="2dp" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="@drawable/card_bg"
-            android:padding="14dp"
-            android:layout_marginBottom="10dp">
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="🗂   Garage — trips, maintenance, 30-day trends"
-                android:textColor="@color/textPrimary"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:paddingBottom="2dp" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="CBS countdown per service item. 30-day trend chart for coolant, oil, battery and more. CSV export of trips + samples for spreadsheet analysis."
-                android:textColor="@color/textSecondary"
-                android:textSize="11sp"
-                android:lineSpacingExtra="2dp" />
-        </LinearLayout>
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="No paywall. No accounts. No analytics. Local-only data."
+            android:text="No paywall · No accounts · Local-only data"
             android:textColor="@color/bmwBlau"
-            android:textSize="12sp"
+            android:textSize="10sp"
             android:textStyle="italic"
             android:gravity="center"
-            android:paddingTop="6dp"
-            android:paddingBottom="14dp" />
+            android:paddingTop="10dp" />
     </LinearLayout>
 </ScrollView>
