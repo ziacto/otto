@@ -1,5 +1,18 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
+}
+
+// Read the Gemini API key from local.properties (which is git-ignored). Fresh
+// clones with no local.properties AI_KEY line still compile — the AI features
+// just degrade to "AI unavailable" until the dev drops their key in.
+val aiKey: String = run {
+    val f = rootProject.file("local.properties")
+    if (!f.exists()) return@run ""
+    val props = Properties()
+    f.inputStream().use { props.load(it) }
+    props.getProperty("AI_KEY", "")
 }
 
 android {
@@ -9,12 +22,19 @@ android {
     namespace = "com.example.obd"
     compileSdk = 36
 
+    // Emit BuildConfig fields (needed to inject AI_KEY). AGP 8 disables this by default.
+    buildFeatures {
+        buildConfig = true
+    }
+
     defaultConfig {
         applicationId = "app.otto.car"
         minSdk = 24
         targetSdk = 36
         versionCode = 2
         versionName = "1.0.0-otto"
+
+        buildConfigField("String", "AI_KEY", "\"$aiKey\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

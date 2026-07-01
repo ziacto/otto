@@ -14,11 +14,6 @@
 .cxx
 local.properties
 
-# Bundled AI credentials stay out of the public repo. Every dev copies
-# EmbeddedAiKey.java.example → EmbeddedAiKey.java locally and pastes their
-# own cipher. See README → AI setup.
-app/src/main/java/com/example/obd/EmbeddedAiKey.java
-
 # Local scratch files (test logs, screenshots, backups)
 /tmp/
 

@@ -48,15 +48,33 @@ Language: Java only, no Kotlin, no Compose.
 ## Quick start
 
 ```bash
-git clone git@github.com:ziacto/otto.git otto
+git clone https://github.com/ziacto/otto.git
 cd otto
 ./gradlew :app:assembleDebug
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 adb shell am start -n app.otto.car/com.example.obd.MainActivity
 ```
 
-No configuration required — the AI features work out of the box thanks to a
-bundled key (see [AI setup](#ai-setup) for details and the security caveat).
+The OBD diagnostics + simulator + self-test all work out of the box.
+
+> ### ⚠️ AI features need your own Gemini key
+>
+> The **AI Repair Estimator** (photo → structured repair estimate) and the
+> **AI chat follow-up** (Google Search-grounded questions) are disabled until
+> you provide a Gemini API key. Without one, everything else runs normally
+> and those two screens show "AI unavailable".
+>
+> 1. Grab a free key at https://aistudio.google.com/apikey (Google account,
+>    no billing needed — the free tier covers ~1500 requests/day).
+> 2. Add one line to `local.properties` at the project root:
+>    ```properties
+>    AI_KEY=AIza…YOUR_KEY_HERE
+>    ```
+> 3. Rebuild. Done.
+>
+> `local.properties` is git-ignored by default, so your key stays local. See
+> [AI setup](#ai-setup) for what happens under the hood and the security
+> caveat about shipping keys inside APKs.
 
 ---
 
@@ -257,38 +275,32 @@ grep "SELFTEST RESULT" /tmp/otto.log
 
 Otto uses Google's Gemini 2.5 Flash for both photo analysis and chat.
 
-### The bundled key
+### Configuring the API key
 
-`EmbeddedAiKey.java` holds an XOR-obfuscated Gemini API key so the app works
-out of the box. **The file is git-ignored** — the repo ships only
-`EmbeddedAiKey.java.example` as a template. Every developer bootstraps their
-own copy:
+Grab a free Gemini key at https://aistudio.google.com/apikey (Google account,
+no billing setup needed), then drop it into `local.properties` at the project
+root:
 
-```bash
-cp app/src/main/java/com/example/obd/EmbeddedAiKey.java.example \
-   app/src/main/java/com/example/obd/EmbeddedAiKey.java
+```properties
+AI_KEY=AIza…YOUR_KEY_HERE
 ```
 
-Then generate a CIPHER array from your Gemini key (get one at
-https://aistudio.google.com/apikey):
+Rebuild. That's it — `app/build.gradle.kts` injects the value into
+`BuildConfig.AI_KEY` at compile time and `AiSettings.getEffectiveKey` reads
+it. Fresh clones with no key set still compile cleanly; AI calls just return
+null and the UI shows "AI unavailable" until you plug in a key.
 
-```bash
-python3 -c "
-key = 'YOUR_GEMINI_KEY_HERE'
-pad = 'OttoCoPilotDriveSafeAndSmartWithAi'
-out = [b ^ ord(pad[i % len(pad)]) for i, b in enumerate(key.encode())]
-print(', '.join('(byte) 0x%02X' % b for b in out))"
-```
+`local.properties` is git-ignored by every Android project by default, so
+there's zero risk of accidentally committing the key. If you want to ship a
+release APK with the key baked in, the same build path applies — the key is
+compiled into the APK's `BuildConfig` class.
 
-Paste the resulting bytes into the `CIPHER` array in `EmbeddedAiKey.java` and
-rebuild. The `.example` file has the same shape but an empty cipher so the
-project compiles without a key (AI features will just error politely).
-
-**Security caveat**: this is obfuscation, not encryption. Anyone with jadx
-and five minutes can recover the key from the APK. The real protection is
-the per-device monthly call quota in `AiSettings.tryConsumeFreeCall`, which
-caps the worst-case billing exposure. The long-term fix is a Cloudflare
-Worker or Firebase Function proxy — see `memory/project_ai_estimator.md`.
+**Security caveat**: anything embedded in an APK can be recovered by a
+reverse engineer. The real protection against runaway billing is Google's
+per-project daily quota (1500 requests/day on free tier) plus your own
+monitoring. Long-term the correct fix is a backend proxy (Cloudflare Worker
+or Firebase Function) that holds the key server-side and rate-limits per
+device — see `memory/project_ai_estimator.md` for the migration plan.
 
 ### Photo analysis
 

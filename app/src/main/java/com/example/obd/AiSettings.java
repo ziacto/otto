@@ -5,24 +5,30 @@ import android.content.Context;
 /**
  * Resolves the Gemini API key for AI calls.
  *
- * <p>The key is bundled in {@link EmbeddedAiKey} so every user gets unlimited
- * AI out-of-the-box. There is NO user-pasted key path and NO per-device quota
- * — Otto is positioned as a Pro app where free use is funded by ads and
- * "remove ads" is the IAP. The user-key entry UI was removed when monetisation
- * shifted from BYO-key to ad-supported.
+ * <p>The key is injected at build time via {@code BuildConfig.AI_KEY} from a
+ * line in {@code local.properties} — a file that's git-ignored by default in
+ * every Android project. Fresh clones with no key set compile fine; AI calls
+ * just return null and the UI shows "AI unavailable".
  *
- * <p>Cost note for future-me: at scale, the bundled key can hit Google's
- * 1500 RPD free-tier limit per project. Mitigation path is a backend proxy
- * (Cloudflare Worker) with multiple Gemini projects round-robined, or moving
- * to paid Gemini billing offset by ad revenue. See project_ai_estimator.md.
+ * <p>To wire up AI locally, add this line to {@code local.properties} at the
+ * project root:
+ *
+ * <pre>AI_KEY=AIza…YOUR_KEY_HERE</pre>
+ *
+ * Rebuild. That's the whole setup — no source-code changes needed.
+ *
+ * <p>Cost note for future-me: at scale, one shared key can hit Google's
+ * 1500 RPD free-tier limit. Mitigation is a backend proxy (Cloudflare Worker)
+ * with multiple Gemini projects round-robined, or paid billing offset by ad
+ * revenue. See {@code memory/project_ai_estimator.md}.
  */
 public final class AiSettings {
 
     private AiSettings() {}
 
-    /** Returns the bundled Gemini key, or null if somehow missing. */
+    /** Returns the configured Gemini key, or null if none is set. */
     public static String getEffectiveKey(Context ctx) {
-        String embedded = EmbeddedAiKey.get();
-        return (embedded == null || embedded.isEmpty()) ? null : embedded;
+        String key = BuildConfig.AI_KEY;
+        return (key == null || key.isEmpty()) ? null : key;
     }
 }
