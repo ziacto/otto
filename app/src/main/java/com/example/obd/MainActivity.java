@@ -675,6 +675,23 @@ public class MainActivity extends AppCompatActivity {
         TextView statusTv = root.findViewById(R.id.tvWelcomeStatus);
         android.widget.Button btn = root.findViewById(R.id.btnWelcomeConnect);
         if (statusTv == null || btn == null) return;
+
+        // Vector-based hero — cheap floating animation with no bitmap cost.
+        // ObjectAnimator + a tiny translation range keeps the effect subtle
+        // and burns no meaningful memory. Animators GC with the View.
+        View car = root.findViewById(R.id.imgWelcomeCar);
+        if (car != null) {
+            float density = getResources().getDisplayMetrics().density;
+            android.animation.ObjectAnimator floatY =
+                    android.animation.ObjectAnimator.ofFloat(car, "translationY",
+                            0f, -4f * density);
+            floatY.setDuration(2400L);
+            floatY.setRepeatCount(android.animation.ObjectAnimator.INFINITE);
+            floatY.setRepeatMode(android.animation.ObjectAnimator.REVERSE);
+            floatY.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());
+            floatY.start();
+        }
+
         Runnable refresh = () -> {
             boolean connected = obdManager != null && obdManager.isConnected();
             if (connected) {

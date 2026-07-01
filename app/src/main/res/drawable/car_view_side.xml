@@ -1,80 +1,210 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    BMW 730li (E65) side profile, stylized line-art. Long hood, low roofline,
-    Hofmeister kink at C-pillar, twin-kidney grille hint, M-Sport-style alloy
-    rims. Stroked in BMW Blau so the silhouette reads as the brand even before
-    the user notices the badge.
+    Modern BMW 7 Series / i7 (G70-era) side profile. Chose side view over
+    3/4 because vector-drawing a proper 3/4 view without ending up with
+    misaligned panels is beyond what pure Android <path> can express cleanly.
+    Focused on the details that scream "modern BMW" from a distance:
+      * Tall vertical twin-kidney grille with illuminated surround
+      * Split LED daytime running strip above the main headlamp cluster
+      * Wraparound LED tail bar
+      * Sculpted M-Sport 10-spoke aero wheels
+      * Chrome window frame with the Hofmeister C-pillar kink
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="380dp"
     android:height="160dp"
-    android:viewportWidth="190"
-    android:viewportHeight="80">
+    android:viewportWidth="380"
+    android:viewportHeight="160">
 
-    <!-- Ground line -->
-    <path android:strokeColor="#2A2A3A" android:strokeWidth="0.5"
-        android:pathData="M5,72 L185,72" />
+    <!-- Ground shadow -->
+    <path android:fillColor="#22355380"
+        android:pathData="M45,138 Q45,146 190,146 Q335,146 335,138 Q335,134 190,134 Q45,134 45,138 Z" />
 
-    <!-- Body: long hood + cabin + boot in one continuous stroke -->
-    <path
-        android:fillColor="#121825"
-        android:strokeColor="#1E5C96"
-        android:strokeWidth="0.9"
-        android:pathData="M14,58 L14,50 Q14,44 22,42 L46,42 L60,32 Q70,28 105,28 Q138,28 150,34 L172,42 L178,44 Q183,46 183,52 L183,62 Q183,66 178,66 L165,66 L160,66 Q158,70 154,70 Q150,70 148,66 L42,66 Q40,70 36,70 Q32,70 30,66 L18,66 Q14,66 14,62 Z" />
+    <!-- Wheel arch dark backgrounds -->
+    <path android:fillColor="#080D18"
+        android:pathData="M95,126 m-32,0 a32,32 0 1,0 64,0 a32,32 0 1,0 -64,0" />
+    <path android:fillColor="#080D18"
+        android:pathData="M270,126 m-32,0 a32,32 0 1,0 64,0 a32,32 0 1,0 -64,0" />
 
-    <!-- Front windshield -->
-    <path android:fillColor="#0A0A12" android:strokeColor="#1E5C96" android:strokeWidth="0.5"
-        android:pathData="M50,42 L62,32 L88,32 L82,42 Z" />
+    <!-- MAIN BODY — one clean silhouette. Long hood, low flowing roofline,
+         short deck. -->
+    <path android:fillColor="#1A6DBF"
+        android:pathData="M30,124
+            L30,102
+            Q30,90 44,86
+            L110,84
+            Q118,84 124,80
+            L145,58
+            Q152,52 168,50
+            L242,48
+            Q262,48 278,58
+            L308,82
+            Q316,86 326,86
+            L346,92
+            Q354,96 354,108
+            L354,124
+            Q354,128 348,128
+            L322,128
+            Q318,136 308,136
+            Q298,136 294,128
+            L145,128
+            Q141,136 131,136
+            Q121,136 117,128
+            L44,128
+            Q30,128 30,124 Z" />
 
-    <!-- Front door window -->
-    <path android:fillColor="#0A0A12" android:strokeColor="#1E5C96" android:strokeWidth="0.5"
-        android:pathData="M84,32 L116,30 L114,42 L84,42 Z" />
+    <!-- Roof / greenhouse (dark glass) -->
+    <path android:fillColor="#0E1B2F"
+        android:pathData="M126,80
+            L148,58 Q155,52 170,50
+            L242,48 Q256,48 272,56
+            L286,66 L286,80
+            L275,82 L128,82 Z" />
 
-    <!-- Rear door window — Hofmeister kink at trailing edge -->
-    <path android:fillColor="#0A0A12" android:strokeColor="#1E5C96" android:strokeWidth="0.5"
-        android:pathData="M118,30 L142,32 L146,42 L116,42 L116,32 Z" />
+    <!-- Chrome window trim -->
+    <path android:fillColor="#00000000" android:strokeColor="#C6E1F5" android:strokeWidth="1.4"
+        android:pathData="M148,58 Q155,52 170,50 L242,48 Q256,48 272,56 L286,66" />
 
-    <!-- Belt-line crease running door-to-door -->
-    <path android:fillColor="#00000000" android:strokeColor="#1E5C96" android:strokeWidth="0.45"
-        android:pathData="M22,52 L182,52" />
+    <!-- B-pillar and C-pillar (Hofmeister kink) -->
+    <path android:fillColor="#3D6FA6"
+        android:pathData="M195,50 L198,50 L198,80 L195,80 Z" />
+    <path android:fillColor="#3D6FA6"
+        android:pathData="M255,48 L258,48 L262,80 L258,80 Z" />
+    <path android:fillColor="#3D6FA6"
+        android:pathData="M272,56 L286,66 L286,80 L280,80 Z" />
+
+    <!-- Windshield sheen -->
+    <path android:fillColor="#1D3654"
+        android:pathData="M152,58 L172,50 L180,52 L156,66 Z" />
+
+    <!-- Character crease + aero blade -->
+    <path android:fillColor="#00000000" android:strokeColor="#0E2A48" android:strokeWidth="1.2"
+        android:pathData="M45,100 L350,100" />
+    <path android:fillColor="#00000000" android:strokeColor="#0E2A48" android:strokeWidth="1.0"
+        android:pathData="M55,116 Q190,122 340,116" />
+
+    <!-- Rocker sill chrome -->
+    <path android:fillColor="#C6E1F5"
+        android:pathData="M80,124 L318,124 L315,126 L82,126 Z" />
 
     <!-- Door cut lines -->
-    <path android:fillColor="#00000000" android:strokeColor="#0F2A48" android:strokeWidth="0.4"
-        android:pathData="M82,44 L82,66" />
-    <path android:fillColor="#00000000" android:strokeColor="#0F2A48" android:strokeWidth="0.4"
-        android:pathData="M116,44 L116,66" />
+    <path android:fillColor="#00000000" android:strokeColor="#0A1A2E" android:strokeWidth="1.0"
+        android:pathData="M148,86 L148,128" />
+    <path android:fillColor="#00000000" android:strokeColor="#0A1A2E" android:strokeWidth="1.0"
+        android:pathData="M198,82 L198,128" />
+    <path android:fillColor="#00000000" android:strokeColor="#0A1A2E" android:strokeWidth="1.0"
+        android:pathData="M252,82 L252,128" />
 
-    <!-- Kidney grille hint (front) -->
-    <path android:fillColor="#1E5C96"
-        android:pathData="M16,55 L19,55 L19,60 L16,60 Z" />
-    <path android:fillColor="#1E5C96"
-        android:pathData="M20,55 L23,55 L23,60 L20,60 Z" />
+    <!-- Flush door handles -->
+    <path android:fillColor="#DCE8F5"
+        android:pathData="M158,98 L188,98 L188,100 L158,100 Z" />
+    <path android:fillColor="#DCE8F5"
+        android:pathData="M208,98 L238,98 L238,100 L208,100 Z" />
 
-    <!-- Headlight cluster -->
-    <path android:fillColor="#EAEAEA"
-        android:pathData="M16,49 L24,47 L24,52 L16,52 Z" />
+    <!-- ============ Tall vertical kidney grille ============ -->
+    <path android:fillColor="#C6E1F5"
+        android:pathData="M28,86 L54,84 L54,126 L28,126 Z" />
+    <path android:fillColor="#0A0F1A"
+        android:pathData="M31,88 L40,87 L40,124 L31,124 Z" />
+    <path android:fillColor="#0A0F1A"
+        android:pathData="M42,87 L51,86 L51,124 L42,124 Z" />
+    <path android:fillColor="#00000000" android:strokeColor="#3D6FA6" android:strokeWidth="0.8"
+        android:pathData="M33,90 L33,122 M35,89.5 L35,122 M37,89 L37,122
+                          M44,88.5 L44,122 M46,88 L46,122 M48,87.5 L48,122" />
+    <path android:fillColor="#7EC0FF"
+        android:pathData="M29,86 L53,84 L53,86 L29,88 Z" />
+    <path android:fillColor="#7EC0FF"
+        android:pathData="M29,124 L53,124 L53,126 L29,126 Z" />
 
-    <!-- Tail light (M-Rot accent) -->
-    <path android:fillColor="#C40C0C"
-        android:pathData="M174,52 L182,50 L182,56 L174,57 Z" />
+    <!-- ============ Split LED daytime running light ============ -->
+    <path android:fillColor="#EEF5FC"
+        android:pathData="M56,88 L96,84 L96,88 L56,92 Z" />
+    <path android:fillColor="#B4E0FF"
+        android:pathData="M58,89 L94,86 L94,87.5 L58,90.5 Z" />
 
-    <!-- Front wheel arch + tire -->
-    <path android:fillColor="#0A0A12" android:strokeColor="#1E5C96" android:strokeWidth="0.5"
-        android:pathData="M22,66 Q22,76 36,76 Q50,76 50,66 Z" />
-    <path android:fillColor="#161625" android:strokeColor="#1E5C96" android:strokeWidth="0.45"
-        android:pathData="M30,70 m-6,0 a6,6 0 1,0 12,0 a6,6 0 1,0 -12,0" />
-    <path android:fillColor="#00000000" android:strokeColor="#1E5C96" android:strokeWidth="0.4"
-        android:pathData="M36,70 L34,68 M36,70 L34,72 M30,67 L34,70 M30,73 L34,70" />
+    <!-- ============ Main headlamp cluster ============ -->
+    <path android:fillColor="#B4D4F0"
+        android:pathData="M56,96 L100,94 L100,110 L56,110 Z" />
+    <path android:fillColor="#0E1B2F"
+        android:pathData="M58,97.5 L98,96 L98,108.5 L58,108.5 Z" />
+    <path android:fillColor="#EEF5FC"
+        android:pathData="M68,102.5 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0" />
+    <path android:fillColor="#FFDF7A"
+        android:pathData="M68,102.5 m-2.6,0 a2.6,2.6 0 1,0 5.2,0 a2.6,2.6 0 1,0 -5.2,0" />
+    <path android:fillColor="#FFF6D6"
+        android:pathData="M68,102.5 m-1.2,0 a1.2,1.2 0 1,0 2.4,0 a1.2,1.2 0 1,0 -2.4,0" />
+    <path android:fillColor="#EEF5FC"
+        android:pathData="M86,102 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0" />
+    <path android:fillColor="#FFDF7A"
+        android:pathData="M86,102 m-2.6,0 a2.6,2.6 0 1,0 5.2,0 a2.6,2.6 0 1,0 -5.2,0" />
+    <path android:fillColor="#FFF6D6"
+        android:pathData="M86,102 m-1.2,0 a1.2,1.2 0 1,0 2.4,0 a1.2,1.2 0 1,0 -2.4,0" />
+    <path android:fillColor="#FFA940"
+        android:pathData="M96,100 m-1.4,0 a1.4,1.4 0 1,0 2.8,0 a1.4,1.4 0 1,0 -2.8,0" />
 
-    <!-- Rear wheel arch + tire -->
-    <path android:fillColor="#0A0A12" android:strokeColor="#1E5C96" android:strokeWidth="0.5"
-        android:pathData="M140,66 Q140,76 154,76 Q168,76 168,66 Z" />
-    <path android:fillColor="#161625" android:strokeColor="#1E5C96" android:strokeWidth="0.45"
-        android:pathData="M148,70 m-6,0 a6,6 0 1,0 12,0 a6,6 0 1,0 -12,0" />
-    <path android:fillColor="#00000000" android:strokeColor="#1E5C96" android:strokeWidth="0.4"
-        android:pathData="M154,70 L152,68 M154,70 L152,72 M148,67 L152,70 M148,73 L152,70" />
+    <!-- ============ Wraparound LED tail bar ============ -->
+    <path android:fillColor="#B4D4F0"
+        android:pathData="M298,92 L354,90 L354,110 L298,110 Z" />
+    <path android:fillColor="#1A0A0A"
+        android:pathData="M300,93.5 L352,92 L352,108.5 L300,108.5 Z" />
+    <path android:fillColor="#D63030"
+        android:pathData="M302,96 L350,94 L350,100 L302,101 Z" />
+    <path android:fillColor="#FF6B6B"
+        android:pathData="M302,96 L350,94 L350,95.5 L302,97.5 Z" />
+    <path android:fillColor="#8B1B1B"
+        android:pathData="M312,103 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0" />
+    <path android:fillColor="#FF4A4A"
+        android:pathData="M312,103 m-2.6,0 a2.6,2.6 0 1,0 5.2,0 a2.6,2.6 0 1,0 -5.2,0" />
+    <path android:fillColor="#FFC5C5"
+        android:pathData="M312,103 m-1,0 a1,1 0 1,0 2,0 a1,1 0 1,0 -2,0" />
+    <path android:fillColor="#8B1B1B"
+        android:pathData="M340,102 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0" />
+    <path android:fillColor="#FF4A4A"
+        android:pathData="M340,102 m-2.6,0 a2.6,2.6 0 1,0 5.2,0 a2.6,2.6 0 1,0 -5.2,0" />
+    <path android:fillColor="#FFC5C5"
+        android:pathData="M340,102 m-1,0 a1,1 0 1,0 2,0 a1,1 0 1,0 -2,0" />
 
-    <!-- Subtle BMW roundel hint on rear pillar -->
-    <path android:fillColor="#1E5C96"
-        android:pathData="M150,38 m-1.4,0 a1.4,1.4 0 1,0 2.8,0 a1.4,1.4 0 1,0 -2.8,0" />
+    <!-- Front bumper aero intake -->
+    <path android:fillColor="#0A0F1A"
+        android:pathData="M58,114 L98,114 L98,126 L58,126 Z" />
+    <path android:fillColor="#3D6FA6"
+        android:pathData="M60,119 L96,119 L96,121 L60,121 Z" />
+
+    <!-- Rear diffuser -->
+    <path android:fillColor="#0A0F1A"
+        android:pathData="M300,116 L350,116 L350,126 L300,126 Z" />
+
+    <!-- Front wheel — modern 10-spoke aero -->
+    <path android:fillColor="#0E1826"
+        android:pathData="M95,126 m-24,0 a24,24 0 1,0 48,0 a24,24 0 1,0 -48,0" />
+    <path android:fillColor="#1A2537"
+        android:pathData="M95,126 m-18,0 a18,18 0 1,0 36,0 a18,18 0 1,0 -36,0" />
+    <path android:fillColor="#1A6DBF"
+        android:pathData="M95,126 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0" />
+    <path android:fillColor="#00000000" android:strokeColor="#B4D4F0" android:strokeWidth="1.4"
+        android:pathData="M95,126 L95,108 M95,126 L107,111 M95,126 L113,118 M95,126 L113,134
+                          M95,126 L107,141 M95,126 L95,144 M95,126 L83,141 M95,126 L77,134
+                          M95,126 L77,118 M95,126 L83,111" />
+
+    <!-- Rear wheel -->
+    <path android:fillColor="#0E1826"
+        android:pathData="M270,126 m-24,0 a24,24 0 1,0 48,0 a24,24 0 1,0 -48,0" />
+    <path android:fillColor="#1A2537"
+        android:pathData="M270,126 m-18,0 a18,18 0 1,0 36,0 a18,18 0 1,0 -36,0" />
+    <path android:fillColor="#1A6DBF"
+        android:pathData="M270,126 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0" />
+    <path android:fillColor="#00000000" android:strokeColor="#B4D4F0" android:strokeWidth="1.4"
+        android:pathData="M270,126 L270,108 M270,126 L282,111 M270,126 L288,118 M270,126 L288,134
+                          M270,126 L282,141 M270,126 L270,144 M270,126 L258,141 M270,126 L252,134
+                          M270,126 L252,118 M270,126 L258,111" />
+
+    <!-- BMW roundel on hood -->
+    <path android:fillColor="#0A0F1A"
+        android:pathData="M105,86 m-6,0 a6,6 0 1,0 12,0 a6,6 0 1,0 -12,0" />
+    <path android:fillColor="#1A6DBF"
+        android:pathData="M105,86 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0" />
+    <path android:fillColor="#F5F7FA"
+        android:pathData="M105,86 L105,81 L110,81 Z" />
+    <path android:fillColor="#F5F7FA"
+        android:pathData="M105,86 L105,91 L100,91 Z" />
 </vector>
