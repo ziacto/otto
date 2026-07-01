@@ -676,20 +676,55 @@ public class MainActivity extends AppCompatActivity {
         android.widget.Button btn = root.findViewById(R.id.btnWelcomeConnect);
         if (statusTv == null || btn == null) return;
 
-        // Vector-based hero — cheap floating animation with no bitmap cost.
-        // ObjectAnimator + a tiny translation range keeps the effect subtle
-        // and burns no meaningful memory. Animators GC with the View.
+        // Vector-based hero — combines four subtle motion layers so the car
+        // reads as "alive" without any bitmap cost. Each animator is created
+        // once and GCs with the View.
+        //   1. translationY  — floating up and down 5dp / 2.4s
+        //   2. translationX  — slow horizontal drift ±7dp / 6.8s
+        //   3. scaleY        — gentle breathing 1.00 → 1.04 / 2.4s
+        //   4. rotation      — barely-perceptible tilt ±0.8° / 4.6s
         View car = root.findViewById(R.id.imgWelcomeCar);
         if (car != null) {
             float density = getResources().getDisplayMetrics().density;
+            android.view.animation.AccelerateDecelerateInterpolator ease =
+                    new android.view.animation.AccelerateDecelerateInterpolator();
+
             android.animation.ObjectAnimator floatY =
                     android.animation.ObjectAnimator.ofFloat(car, "translationY",
-                            0f, -4f * density);
+                            0f, -5f * density);
             floatY.setDuration(2400L);
             floatY.setRepeatCount(android.animation.ObjectAnimator.INFINITE);
             floatY.setRepeatMode(android.animation.ObjectAnimator.REVERSE);
-            floatY.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());
+            floatY.setInterpolator(ease);
+
+            android.animation.ObjectAnimator drift =
+                    android.animation.ObjectAnimator.ofFloat(car, "translationX",
+                            -7f * density, 7f * density);
+            drift.setDuration(6800L);
+            drift.setRepeatCount(android.animation.ObjectAnimator.INFINITE);
+            drift.setRepeatMode(android.animation.ObjectAnimator.REVERSE);
+            drift.setInterpolator(ease);
+
+            android.animation.ObjectAnimator breathe =
+                    android.animation.ObjectAnimator.ofFloat(car, "scaleY",
+                            1.0f, 1.04f);
+            breathe.setDuration(2400L);
+            breathe.setRepeatCount(android.animation.ObjectAnimator.INFINITE);
+            breathe.setRepeatMode(android.animation.ObjectAnimator.REVERSE);
+            breathe.setInterpolator(ease);
+
+            android.animation.ObjectAnimator tilt =
+                    android.animation.ObjectAnimator.ofFloat(car, "rotation",
+                            -0.8f, 0.8f);
+            tilt.setDuration(4600L);
+            tilt.setRepeatCount(android.animation.ObjectAnimator.INFINITE);
+            tilt.setRepeatMode(android.animation.ObjectAnimator.REVERSE);
+            tilt.setInterpolator(ease);
+
             floatY.start();
+            drift.start();
+            breathe.start();
+            tilt.start();
         }
 
         Runnable refresh = () -> {

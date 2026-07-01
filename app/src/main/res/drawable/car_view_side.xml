@@ -101,13 +101,13 @@
     <path android:fillColor="#DCE8F5"
         android:pathData="M208,98 L238,98 L238,100 L208,100 Z" />
 
-    <!-- ============ Tall vertical kidney grille ============ -->
+    <!-- ============ Tall vertical kidney grille (rounded corners) ============ -->
     <path android:fillColor="#C6E1F5"
-        android:pathData="M28,86 L54,84 L54,126 L28,126 Z" />
+        android:pathData="M32,84 L50,84 Q54,84 54,88 L54,122 Q54,126 50,126 L32,126 Q28,126 28,122 L28,90 Q28,86 32,86 Z" />
     <path android:fillColor="#0A0F1A"
-        android:pathData="M31,88 L40,87 L40,124 L31,124 Z" />
+        android:pathData="M33,89 L38,88 Q40,88 40,90 L40,122 Q40,124 38,124 L33,124 Q31,124 31,122 L31,91 Q31,89 33,89 Z" />
     <path android:fillColor="#0A0F1A"
-        android:pathData="M42,87 L51,86 L51,124 L42,124 Z" />
+        android:pathData="M44,88 L49,87 Q51,87 51,89 L51,122 Q51,124 49,124 L44,124 Q42,124 42,122 L42,90 Q42,88 44,88 Z" />
     <path android:fillColor="#00000000" android:strokeColor="#3D6FA6" android:strokeWidth="0.8"
         android:pathData="M33,90 L33,122 M35,89.5 L35,122 M37,89 L37,122
                           M44,88.5 L44,122 M46,88 L46,122 M48,87.5 L48,122" />
@@ -142,11 +142,11 @@
     <path android:fillColor="#FFA940"
         android:pathData="M96,100 m-1.4,0 a1.4,1.4 0 1,0 2.8,0 a1.4,1.4 0 1,0 -2.8,0" />
 
-    <!-- ============ Wraparound LED tail bar ============ -->
+    <!-- ============ Wraparound LED tail bar (rounded corners) ============ -->
     <path android:fillColor="#B4D4F0"
-        android:pathData="M298,92 L354,90 L354,110 L298,110 Z" />
+        android:pathData="M302,90 L350,90 Q354,90 354,94 L354,106 Q354,110 350,110 L302,110 Q298,110 298,106 L298,94 Q298,90 302,90 Z" />
     <path android:fillColor="#1A0A0A"
-        android:pathData="M300,93.5 L352,92 L352,108.5 L300,108.5 Z" />
+        android:pathData="M304,93 L348,92 Q352,92 352,96 L352,105 Q352,108.5 348,108.5 L304,108.5 Q300,108.5 300,105 L300,96 Q300,93 304,93 Z" />
     <path android:fillColor="#D63030"
         android:pathData="M302,96 L350,94 L350,100 L302,101 Z" />
     <path android:fillColor="#FF6B6B"
@@ -164,15 +164,15 @@
     <path android:fillColor="#FFC5C5"
         android:pathData="M340,102 m-1,0 a1,1 0 1,0 2,0 a1,1 0 1,0 -2,0" />
 
-    <!-- Front bumper aero intake -->
+    <!-- Front bumper aero intake (rounded) -->
     <path android:fillColor="#0A0F1A"
-        android:pathData="M58,114 L98,114 L98,126 L58,126 Z" />
+        android:pathData="M62,114 L94,114 Q98,114 98,118 L98,124 Q98,126 96,126 L60,126 Q58,126 58,124 L58,118 Q58,114 62,114 Z" />
     <path android:fillColor="#3D6FA6"
         android:pathData="M60,119 L96,119 L96,121 L60,121 Z" />
 
-    <!-- Rear diffuser -->
+    <!-- Rear diffuser (rounded) -->
     <path android:fillColor="#0A0F1A"
-        android:pathData="M300,116 L350,116 L350,126 L300,126 Z" />
+        android:pathData="M304,116 L346,116 Q350,116 350,120 L350,124 Q350,126 348,126 L302,126 Q300,126 300,124 L300,120 Q300,116 304,116 Z" />
 
     <!-- Front wheel — modern 10-spoke aero -->
     <path android:fillColor="#0E1826"
