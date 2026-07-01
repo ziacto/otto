@@ -2,6 +2,7 @@ import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
 }
 
 // Read the Gemini API key from local.properties (which is git-ignored). Fresh
@@ -67,6 +68,14 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+    kotlinOptions {
+        jvmTarget = "11"
+    }
+    // GLBs are pre-compressed; disable AGP's asset compression so runtime
+    // parsing avoids a decompress-then-parse hop.
+    androidResources {
+        noCompress += listOf("glb", "gltf")
+    }
 }
 
 dependencies {
@@ -93,4 +102,12 @@ dependencies {
     // main Activity inflates.
     implementation("androidx.core:core-splashscreen:1.0.1")
 
+    // SceneView + Filament — real-time PBR rendering of a GLB (BMW M4 F82).
+    // Adds ~15-18 MB to the APK (Filament native libs) plus the ~23 MB
+    // model itself. Kotlin required at the call site — see CarHeroSceneView.kt.
+    implementation("io.github.sceneview:sceneview:2.2.1")
+
+    // Kotlin standard library (implicit but pin it so version resolution
+    // doesn't drift when other deps drag it in).
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.24")
 }

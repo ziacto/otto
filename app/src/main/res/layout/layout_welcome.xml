@@ -40,18 +40,14 @@
             android:textSize="11sp"
             android:paddingBottom="6dp" />
 
-        <!-- Modern BMW G70 7 Series side profile — vector drawable with a
-             gentle floating animation wired in MainActivity.wireWelcomeScreen.
-             Not a 3D render; a stylised silhouette that keeps the Welcome
-             screen light-weight (no bitmaps, no OpenGL). -->
-        <ImageView
+        <!-- Real 3D PBR render of a BMW M4 F82 (bundled GLB, ~23 MB) via
+             SceneView / Filament. Continuously rotated + bobs + nods; see
+             CarHeroSceneView.kt for the animation composition. -->
+        <com.example.obd.CarHeroSceneView
             android:id="@+id/imgWelcomeCar"
             android:layout_width="match_parent"
-            android:layout_height="120dp"
-            android:layout_marginBottom="6dp"
-            android:scaleType="fitCenter"
-            android:src="@drawable/car_view_side"
-            android:contentDescription="BMW 7 Series side profile" />
+            android:layout_height="200dp"
+            android:layout_marginBottom="6dp" />
 
         <!-- Connection status + primary Connect button -->
         <LinearLayout
