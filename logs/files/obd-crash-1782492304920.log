@@ -1,0 +1,118 @@
+---- OBD2 app crash report ----
+time:    Fri Jun 26 20:45:04 GMT+04:00 2026
+thread:  Thread-8 (id=4598)
+device:  TECNO TECNO KM9
+android: 15 (sdk 35)
+
+---- stacktrace ----
+java.lang.NullPointerException: Attempt to invoke virtual method 'int java.io.BufferedInputStream.available()' on a null object reference
+	at com.example.obd.ObdConnection.captureInit(ObdConnection.java:196)
+	at com.example.obd.ObdConnection.initElm327(ObdConnection.java:163)
+	at com.example.obd.ObdConnection.connect(ObdConnection.java:69)
+	at com.example.obd.ObdManagerFast.connect(ObdManagerFast.java:36)
+	at com.example.obd.BluetoothHelper.lambda$showPairedDevicesAndConnect$6$com-example-obd-BluetoothHelper(BluetoothHelper.java:143)
+	at com.example.obd.BluetoothHelper$$ExternalSyntheticLambda1.run(D8$$SyntheticClass:0)
+	at java.lang.Thread.run(Thread.java:1572)
+
+---- recent ObdLogger entries ----
+17:32:27.551  [INFO]  ---- log session start (pid=4747) ----
+17:32:31.453  [INFO]  Connecting to F4:4E:FD:9C:60:C0
+17:32:31.466  [INFO]  Device type=CLASSIC name=T25
+17:32:31.468  [INFO]  Opening RFCOMM SPP
+17:32:31.471  [INFO]  Bond state: BONDED
+17:32:39.281  [INFO]  SPP UUID connect failed (read failed, socket might closed or timeout, read ret: -1), trying ch1 reflection
+17:32:47.002  [ERROR]  Connect failed to F4:4E:FD:9C:60:C0: java.io.IOException: OBD connection failed: read failed, socket might closed or timeout, read ret: -1
+18:14:02.767  [INFO]  Auto-reconnect attempt #1
+18:15:02.144  [INFO]  Auto-reconnect attempt #2
+18:15:03.838  [INFO]  Connecting to DC:0D:30:E2:51:FD
+18:15:03.868  [INFO]  Device type=CLASSIC name=vLinker BM-Android
+18:15:03.870  [INFO]  Opening RFCOMM SPP
+18:15:03.873  [INFO]  Bond state: BONDED
+18:15:04.625  [INFO]  RFCOMM socket open
+18:15:04.628  [TX]  init> ATZ
+18:15:05.672  [RX]  init< ATZELM327 v2.2
+18:15:06.477  [TX]  init> ATE0
+18:15:06.606  [RX]  init< ATE0OK
+18:15:06.689  [TX]  init> ATL0
+18:15:06.776  [RX]  init< OK
+18:15:06.860  [TX]  init> ATH0
+18:15:06.946  [RX]  init< OK
+18:15:07.030  [TX]  init> ATCAF1
+18:15:07.097  [RX]  init< OK
+18:15:07.180  [TX]  init> ATST 64
+18:15:07.246  [RX]  init< OK
+18:15:07.330  [TX]  init> ATAT2
+18:15:07.412  [RX]  init< OK
+18:15:07.494  [TX]  init> ATSP0
+18:15:07.577  [RX]  init< OK
+18:15:07.578  [TX]  init> 0100
+18:15:12.589  [RX]  init< SEARCHING...
+18:15:14.091  [INFO]  Probe ATSP0 -> no-data
+18:15:14.092  [INFO]  ATSP0 auto-detect did not respond to 0100; forcing ATSP6 (CAN 11/500) for BMW E65
+18:15:14.094  [TX]  init> ATSP6
+18:15:19.118  [RX]  init< EA01
+18:15:19.121  [TX]  init> 0100
+18:15:19.250  [RX]  init< 7F 01 12 STOPPED
+18:15:20.755  [INFO]  Probe ATSP6 -> no-data
+18:15:20.757  [INFO]  ATSP6 also failed; trying ATSP7 (CAN 29/500)
+18:15:20.759  [TX]  init> ATSP7
+18:15:20.864  [RX]  init< 
+18:15:20.866  [TX]  init> 0100
+18:15:21.244  [RX]  init< 13.8V
+18:15:22.750  [INFO]  Probe ATSP7 -> no-data
+18:15:22.753  [ERROR]  Protocol detection failed on ATSP0/6/7 — polling will likely return NO DATA
+18:15:22.756  [TX]  init> ATDPN
+18:15:23.086  [RX]  init< CAN ERROR
+18:15:23.089  [INFO]  ELM327 init complete
+18:15:23.094  [INFO]  Connected to DC:0D:30:E2:51:FD
+18:15:34.151  [ERROR]  Poll thread did not exit within 2s (still alive)
+18:15:42.415  [ERROR]  Poll thread did not exit within 2s (still alive)
+18:15:50.719  [ERROR]  Poll thread did not exit within 2s (still alive)
+18:16:02.147  [INFO]  Reconnected — clearing backoff (was 2 attempts)
+18:16:04.383  [ERROR]  Poll thread did not exit within 2s (still alive)
+18:16:12.581  [ERROR]  Poll thread did not exit within 2s (still alive)
+20:44:50.001  [INFO]  Auto-connecting to DC:0D:30:E2:51:FD
+20:44:50.037  [INFO]  Device type=CLASSIC name=vLinker BM-Android
+20:44:50.039  [INFO]  Opening RFCOMM SPP
+20:44:50.040  [INFO]  Bond state: BONDED
+20:44:52.707  [INFO]  RFCOMM socket open
+20:44:52.708  [TX]  init> ATZ
+20:44:52.947  [INFO]  Connecting to DC:0D:30:E2:51:FD
+20:44:52.954  [ERROR]  Auto-connect failed: Attempt to invoke virtual method 'int java.io.BufferedInputStream.available()' on a null object reference
+20:44:53.010  [INFO]  Device type=CLASSIC name=vLinker BM-Android
+20:44:53.012  [INFO]  Opening RFCOMM SPP
+20:44:53.015  [INFO]  Bond state: BONDED
+20:44:53.205  [INFO]  RFCOMM socket open
+20:44:53.207  [TX]  init> ATZ
+20:44:53.660  [RX]  init< ELM327 v2.2
+20:44:54.461  [TX]  init> ATE0
+20:44:54.525  [RX]  init< ATE0OK
+20:44:54.607  [TX]  init> ATL0
+20:44:54.649  [RX]  init< OK
+20:44:54.731  [TX]  init> ATH0
+20:44:54.794  [RX]  init< OK
+20:44:54.876  [TX]  init> ATCAF1
+20:44:54.898  [RX]  init< OK
+20:44:54.980  [TX]  init> ATST 64
+20:44:55.002  [RX]  init< OK
+20:44:55.084  [TX]  init> ATAT2
+20:44:55.128  [RX]  init< OK
+20:44:55.210  [TX]  init> ATSP0
+20:44:55.233  [RX]  init< OK
+20:44:55.235  [TX]  init> 0100
+20:44:59.958  [RX]  init< SEARCHING...41 00 80 18 00 11 41 00 BF 9F A8 91
+20:45:01.462  [INFO]  Probe ATSP0 -> no-data
+20:45:01.465  [INFO]  ATSP0 auto-detect did not respond to 0100; forcing ATSP6 (CAN 11/500) for BMW E65
+20:45:01.469  [TX]  init> ATSP6
+20:45:01.556  [RX]  init< OK
+20:45:01.559  [TX]  init> 0100
+20:45:01.665  [RX]  init< CAN ERROR
+20:45:03.168  [INFO]  Probe ATSP6 -> no-data
+20:45:03.171  [INFO]  ATSP6 also failed; trying ATSP7 (CAN 29/500)
+20:45:03.173  [TX]  init> ATSP7
+20:45:03.279  [RX]  init< OK
+20:45:03.282  [TX]  init> 0100
+20:45:03.389  [RX]  init< CAN ERROR
+20:45:04.893  [INFO]  Probe ATSP7 -> no-data
+20:45:04.895  [ERROR]  Protocol detection failed on ATSP0/6/7 — polling will likely return NO DATA
+20:45:04.897  [TX]  init> ATDPN

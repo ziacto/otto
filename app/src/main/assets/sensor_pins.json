@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "notes": "Pin x/y are percentages of the displayed car image (0.0..1.0). Curated for BMW E65 730li N52B30. Extend per car generation. Add/remove without code changes.",
+  "views": {
+    "engine": {
+      "label": "Engine Bay (N52)",
+      "pins": [
+        { "x": 0.13, "y": 0.40, "name": "MAF + IAT Sensor", "function": "Measures intake air mass + temperature.", "symptoms": "Lean codes, rough idle, poor throttle response.", "codes": ["P0100", "P0101", "P0113", "P0171"] },
+        { "x": 0.50, "y": 0.45, "name": "Ignition Coils (cyl 1-6)", "function": "Fire spark plugs. Replace as a set; common failure at 60-80k km.", "symptoms": "Misfire, shaking idle, MIL flashing.", "codes": ["P0300", "P0301", "P0302", "P0303", "P0304", "P0305", "P0306"] },
+        { "x": 0.50, "y": 0.70, "name": "Intake Manifold + DISA", "function": "DISA flap switches intake length for low/high rpm.", "symptoms": "Loss of low-end torque, vacuum leak codes.", "codes": ["P0171", "P1083", "P0506"] },
+        { "x": 0.86, "y": 0.40, "name": "Coolant Expansion Tank", "function": "Coolant reservoir. Cracks at the seam are an E65 weak spot.", "symptoms": "Coolant smell, low coolant warning, overheat.", "codes": ["P0117", "P0118", "P0217"] },
+        { "x": 0.30, "y": 0.30, "name": "VANOS Solenoids (intake)", "function": "Hydraulic cam phaser actuator. Sludge-sensitive — clean every oil change.", "symptoms": "Cold-start rattle, P0011/P0014, loss of power.", "codes": ["P0010", "P0011", "P0014", "P0015"] },
+        { "x": 0.70, "y": 0.30, "name": "Cam Position Sensor", "function": "Tells DME where the cam is. Pairs with crank sensor.", "symptoms": "Crank-no-start, stalling, P0340.", "codes": ["P0016", "P0017", "P0340"] }
+      ]
+    },
+    "side": {
+      "label": "Side View",
+      "pins": [
+        { "x": 0.24, "y": 0.78, "name": "Front Wheel Speed Sensor (LF)", "function": "Reports wheel speed to DSC module — DSC then broadcasts vehicle speed to KOMBI cluster.", "symptoms": "ABS/DSC light, speedometer dropouts, intermittent traction-control fault. DIRECTLY RELEVANT to your speedo issue.", "codes": ["P0500"] },
+        { "x": 0.78, "y": 0.78, "name": "Rear Wheel Speed Sensor (RR)", "function": "Same family — RR corner. Failures more common than LF on E65.", "symptoms": "Intermittent speed drop, especially around bumps.", "codes": ["P0500"] },
+        { "x": 0.55, "y": 0.50, "name": "OBD-II Port", "function": "Driver footwell, behind kick panel. 16-pin DLC. This is where your vLinker BM+ plugs in.", "symptoms": "App can't connect / no power on adapter LEDs.", "codes": [] },
+        { "x": 0.50, "y": 0.35, "name": "DME (engine ECU)", "function": "Engine control unit. Lives near the engine bay firewall on E65.", "symptoms": "P0601/P0606 = ECU failure. Battery disconnect resets adaptations.", "codes": ["P0601", "P0606"] }
+      ]
+    },
+    "top": {
+      "label": "Top View",
+      "pins": [
+        { "x": 0.50, "y": 0.13, "name": "Engine (N52 inline-6)", "function": "Naturally aspirated 3.0L petrol. 258 hp on 730li.", "symptoms": "See Engine Bay view for sensor detail.", "codes": [] },
+        { "x": 0.50, "y": 0.40, "name": "Cabin Air Filter", "function": "Under windshield cowl. Service item — usually replaced annually.", "symptoms": "Weak A/C airflow, musty smell.", "codes": [] },
+        { "x": 0.50, "y": 0.85, "name": "Battery + IBS (trunk)", "function": "E65 battery lives in the trunk under the floor. IBS sensor monitors current draw.", "symptoms": "Cold-start fail, voltage drop, BST/CBS code on cluster, battery needing registration after replacement.", "codes": [] },
+        { "x": 0.50, "y": 0.65, "name": "Fuel Tank + Sender", "function": "Saddle tank with twin pumps on early E65.", "symptoms": "Fuel gauge erratic, P0455 large EVAP leak.", "codes": ["P0440", "P0442", "P0455"] }
+      ]
+    },
+    "front": {
+      "label": "Front View",
+      "pins": [
+        { "x": 0.30, "y": 0.55, "name": "LF Headlight (FRM)", "function": "Bi-xenon or halogen — controlled by FRM module.", "symptoms": "Headlight dead but bulb good = FRM or bus issue.", "codes": [] },
+        { "x": 0.70, "y": 0.55, "name": "RF Headlight (FRM)", "function": "Same family.", "symptoms": "See LF.", "codes": [] },
+        { "x": 0.50, "y": 0.60, "name": "Radiator + Coolant Loop", "function": "Front-mounted aluminum-plastic radiator. E65 end-tank cracks are common.", "symptoms": "Visible drip, sweet smell, coolant low warning, overheat.", "codes": ["P0117", "P0217"] }
+      ]
+    }
+  }
+}

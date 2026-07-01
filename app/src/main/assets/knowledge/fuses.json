@@ -1,0 +1,82 @@
+{
+  "version": 1,
+  "vehicle": "BMW E65 730li 2007 GCC spec",
+  "notes": "Fuse box locations and contents for E65. Exact fuse number can vary by build date — always check the printed diagram on the fuse box lid first. This data is the typical config for a 2007 GCC build.",
+  "boxes": [
+    {
+      "id": "glovebox",
+      "title": "Glovebox fuse box (passenger side)",
+      "location": "Behind the glovebox. Open glovebox, push sides inward to release stops, lower fully. Fuse panel on the right wall.",
+      "access": "No tools — just pinch glovebox sides and lower.",
+      "fuses": [
+        { "no": "F1", "amp": 5, "circuit": "Diagnosis socket / OBD-II pin 16 power" },
+        { "no": "F4", "amp": 7.5, "circuit": "Comfort access (passive entry) module" },
+        { "no": "F5", "amp": 5, "circuit": "Roll-over sensor / airbag module" },
+        { "no": "F7", "amp": 10, "circuit": "Right tail light cluster" },
+        { "no": "F8", "amp": 10, "circuit": "Left tail light cluster" },
+        { "no": "F11", "amp": 5, "circuit": "Park Distance Control (PDC)" },
+        { "no": "F13", "amp": 7.5, "circuit": "Steering column adjustment" },
+        { "no": "F14", "amp": 30, "circuit": "Front seat heating driver" },
+        { "no": "F15", "amp": 30, "circuit": "Front seat heating passenger" },
+        { "no": "F19", "amp": 5, "circuit": "Multifunction steering wheel" },
+        { "no": "F23", "amp": 7.5, "circuit": "Driver airbag" },
+        { "no": "F24", "amp": 7.5, "circuit": "Passenger airbag / OC mat sensor" },
+        { "no": "F26", "amp": 5, "circuit": "Reverse light circuit" },
+        { "no": "F27", "amp": 7.5, "circuit": "Brake light switch / CAS module wake" },
+        { "no": "F30", "amp": 5, "circuit": "Tyre pressure monitoring (RDC) module" },
+        { "no": "F38", "amp": 30, "circuit": "Front blower motor (HVAC)" },
+        { "no": "F39", "amp": 7.5, "circuit": "Auxiliary heater fan (cold climate only)" },
+        { "no": "F44", "amp": 7.5, "circuit": "Convertible top (not on 730li)" },
+        { "no": "F46", "amp": 15, "circuit": "Head unit / CCC navigation power" },
+        { "no": "F47", "amp": 5, "circuit": "Head unit display backlight" }
+      ]
+    },
+    {
+      "id": "boot",
+      "title": "Boot/trunk fuse box (right side)",
+      "location": "Boot, right side wall. Lift the right trim panel — 3 plastic clips. Battery is also in the boot on E65. Note: the Logic 7 amplifier itself is on the LEFT rear corner of the trunk (different side from this fuse box).",
+      "access": "Pull right trim panel off — no tools needed.",
+      "fuses": [
+        { "no": "F50", "amp": 50, "circuit": "Anti-lock brake / DSC pump motor" },
+        { "no": "F52", "amp": 5, "circuit": "Trailer hitch module (if fitted)" },
+        { "no": "F53", "amp": 30, "circuit": "Top HiFi / Logic 7 amplifier — CHECK THIS FOR AUDIO FAULT" },
+        { "no": "F54", "amp": 7.5, "circuit": "Trunk light + boot lid module" },
+        { "no": "F55", "amp": 30, "circuit": "Top HiFi amp (some build dates) — alternate to F53" },
+        { "no": "F57", "amp": 5, "circuit": "Soft-close trunk actuator" },
+        { "no": "F58", "amp": 30, "circuit": "Rear window defrost" },
+        { "no": "F60", "amp": 30, "circuit": "Air suspension compressor (rear)" },
+        { "no": "F62", "amp": 5, "circuit": "Telematics module / SIM" },
+        { "no": "F63", "amp": 20, "circuit": "Sunroof motor / SHD" },
+        { "no": "F64", "amp": 7.5, "circuit": "Rear comfort module / rear roof console" },
+        { "no": "F70", "amp": 30, "circuit": "Trailer hitch power" }
+      ]
+    },
+    {
+      "id": "engine_bay",
+      "title": "Engine bay power distribution (E-box)",
+      "location": "Engine bay, near windshield, passenger side. Black box marked 'E-Box' (Electronics Box). Lift cover.",
+      "access": "Lift cover with hand. Battery shutdown recommended before working.",
+      "fuses": [
+        { "no": "F101", "amp": 80, "circuit": "Main alternator / charging system" },
+        { "no": "F102", "amp": 60, "circuit": "Glove box fuse panel feed" },
+        { "no": "F103", "amp": 60, "circuit": "Boot fuse panel feed" },
+        { "no": "F104", "amp": 30, "circuit": "Front blower power" },
+        { "no": "F105", "amp": 40, "circuit": "Auxiliary water pump (electric)" },
+        { "no": "F106", "amp": 50, "circuit": "Cooling fan motor" },
+        { "no": "F107", "amp": 40, "circuit": "ABS/DSC valves" },
+        { "no": "F108", "amp": 5, "circuit": "DME power supply (Terminal 30)" },
+        { "no": "F109", "amp": 5, "circuit": "Fuel pump relay" },
+        { "no": "F110", "amp": 30, "circuit": "Headlight washer pump" }
+      ]
+    }
+  ],
+  "common_faults_by_circuit": {
+    "no_audio": "Check boot fuse F53 (30A HiFi amp) FIRST. €1 fix if blown. See faults entry 'logic7_amp_dead' for next steps.",
+    "no_start": "Check engine bay F108 (DME power) and F109 (fuel pump relay). Also F27 (CAS wake circuit).",
+    "no_blower": "Check glovebox F38 (30A blower motor). If blown again immediately = motor seized.",
+    "speedometer_dropout": "Not a fuse issue. DSC module fault — see faults DTC 5DF0-5DF3 wheel speed sensors.",
+    "no_rear_seat_heating": "Check boot fuse box rear heater circuit — varies by spec.",
+    "interior_lights_dead": "Glovebox F54 area + check FRM module on K-CAN (not OBD reachable).",
+    "trunk_wont_open": "F54 (trunk light/lid module). Also check trunk actuator + microswitch."
+  }
+}

@@ -1,14 +1,52 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <style name="Base.Theme.OBD" parent="Theme.Material3.Dark.NoActionBar">
-        <item name="android:windowBackground">@color/darkBackground</item>
-        <item name="android:textColorPrimary">@color/primaryTextColor</item>
-        <item name="android:textColorSecondary">@color/secondaryTextColor</item>
-        <item name="colorPrimary">@color/darkPrimary</item>
-        <item name="colorPrimaryVariant">@color/darkPrimaryVariant</item>
-        <item name="colorSecondary">@color/darkSecondary</item>
-        <item name="colorAccent">@color/accentColor</item>
-        <item name="android:statusBarColor">@color/darkBackground</item>
+        <item name="android:windowBackground">@color/surfaceBase</item>
+        <item name="android:textColorPrimary">@color/textPrimary</item>
+        <item name="android:textColorSecondary">@color/textSecondary</item>
+        <item name="colorPrimary">@color/bmwBlau</item>
+        <item name="colorPrimaryVariant">@color/bmwBlauDim</item>
+        <item name="colorSecondary">@color/bmwBlau</item>
+        <item name="colorAccent">@color/bmwBlau</item>
+        <item name="android:statusBarColor">@color/surfaceBase</item>
+        <item name="android:navigationBarColor">@color/surfaceBase</item>
     </style>
 
     <style name="Theme.OBD" parent="Base.Theme.OBD" />
+
+    <!--
+        Splash theme. On Android 12+ the OS draws a native splash window using
+        windowSplashScreenBackground + windowSplashScreenAnimatedIcon. On older
+        devices the AndroidX core-splashscreen library back-ports the same look
+        from these attrs. The launcher icon vector renders centred on a
+        brand-coloured background, then the Activity replaces the theme.
+    -->
+    <style name="Theme.Otto.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/surfaceBase</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/Theme.OBD</item>
+    </style>
+
+    <!-- Reusable text styles. Apply via android:textAppearance to keep dashboards
+         consistent without sprinkling sp/weight values across every layout. -->
+    <style name="Text.Hero" parent="android:TextAppearance">
+        <item name="android:textColor">@color/textPrimary</item>
+        <item name="android:textSize">72sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:fontFeatureSettings">"tnum"</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
+
+    <style name="Text.TileValue" parent="android:TextAppearance">
+        <item name="android:textColor">@color/textPrimary</item>
+        <item name="android:textSize">22sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:fontFeatureSettings">"tnum"</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
+
+    <style name="Text.Section" parent="android:TextAppearance">
+        <item name="android:textColor">@color/textSecondary</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:letterSpacing">0.25</item>
+    </style>
 </resources>

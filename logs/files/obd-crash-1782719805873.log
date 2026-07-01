@@ -1,0 +1,41 @@
+---- OBD2 app crash report ----
+time:    Mon Jun 29 11:56:45 GMT+04:00 2026
+thread:  main (id=2)
+device:  TECNO TECNO KM9
+android: 15 (sdk 35)
+
+---- stacktrace ----
+android.app.RemoteServiceException$ForegroundServiceDidNotStartInTimeException: Context.startForegroundService() did not then call Service.startForeground(): ServiceRecord{bd2ed9a u0 app.otto.car/com.example.obd.ObdService c:app.otto.car}
+	at android.app.ActivityThread.generateForegroundServiceDidNotStartInTimeException(ActivityThread.java:2411)
+	at android.app.ActivityThread.throwRemoteServiceException(ActivityThread.java:2379)
+	at android.app.ActivityThread.-$$Nest$mthrowRemoteServiceException(ActivityThread.java:0)
+	at android.app.ActivityThread$H.handleMessage(ActivityThread.java:2707)
+	at android.os.Handler.dispatchMessage(Handler.java:107)
+	at android.os.Looper.loopOnce(Looper.java:311)
+	at android.os.Looper.loop(Looper.java:408)
+	at android.app.ActivityThread.main(ActivityThread.java:9119)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:627)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:970)
+Caused by: android.app.StackTrace: Last startServiceCommon() call for this service was made here
+	at android.app.ContextImpl.startServiceCommon(ContextImpl.java:2164)
+	at android.app.ContextImpl.startForegroundService(ContextImpl.java:2108)
+	at android.content.ContextWrapper.startForegroundService(ContextWrapper.java:853)
+	at android.content.ContextWrapper.startForegroundService(ContextWrapper.java:853)
+	at com.example.obd.ObdService.startIfNeeded(ObdService.java:177)
+	at com.example.obd.MainActivity.onCreate(MainActivity.java:234)
+	at android.app.Activity.performCreate(Activity.java:9028)
+	at android.app.Activity.performCreate(Activity.java:9006)
+	at android.app.Instrumentation.callActivityOnCreate(Instrumentation.java:1530)
+	at android.app.ActivityThread.performLaunchActivity(ActivityThread.java:4285)
+	at android.app.ActivityThread.handleLaunchActivity(ActivityThread.java:4494)
+	at android.app.servertransaction.LaunchActivityItem.execute(LaunchActivityItem.java:123)
+	at android.app.servertransaction.TransactionExecutor.executeNonLifecycleItem(TransactionExecutor.java:174)
+	at android.app.servertransaction.TransactionExecutor.executeTransactionItems(TransactionExecutor.java:109)
+	at android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:81)
+	at android.app.ActivityThread$H.handleMessage(ActivityThread.java:2786)
+	... 7 more
+
+---- recent ObdLogger entries ----
+11:56:44.699  [INFO]  ---- log session start (pid=26552) ----
+11:56:45.624  [INFO]  ObdService: BT_CONNECT not granted, skipping FGS start

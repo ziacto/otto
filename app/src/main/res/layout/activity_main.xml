@@ -23,7 +23,7 @@
             android:paddingEnd="16dp"
             android:paddingTop="44dp"
             android:paddingBottom="10dp"
-            android:background="#1A1A2E"
+            android:background="@color/surfaceTopBar"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent">
@@ -35,18 +35,19 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="Menu"
                 android:src="@android:drawable/ic_menu_sort_by_size"
-                android:tint="@color/accentColor" />
+                app:tint="@color/bmwBlau" />
 
             <TextView
                 android:id="@+id/tvTitle"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="OBD Monitor"
-                android:textSize="22sp"
+                android:text="BMW 730li"
+                android:textSize="20sp"
                 android:textStyle="bold"
-                android:textColor="@color/primaryTextColor"
-                android:paddingStart="8dp" />
+                android:textColor="@color/textPrimary"
+                android:paddingStart="8dp"
+                android:letterSpacing="0.05" />
 
         </LinearLayout>
 
@@ -55,20 +56,105 @@
             android:id="@+id/divider"
             android:layout_width="0dp"
             android:layout_height="1dp"
-            android:background="@color/accentColor"
+            android:background="@color/surfaceStroke"
             app:layout_constraintTop_toBottomOf="@id/topBar"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
+
+        <!-- UNIFIED STATUS BAR — connection pill (left), DTC chip (center),
+             thermal-warning chip (right). One source of truth across all screens. -->
+        <LinearLayout
+            android:id="@+id/statusBar"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:background="@color/surfaceTopBar"
+            app:layout_constraintTop_toBottomOf="@id/divider"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <TextView
+                android:id="@+id/connectionPill"
+                android:layout_width="wrap_content"
+                android:layout_height="24dp"
+                android:gravity="center_vertical"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:text="● Disconnected"
+                android:textColor="#FFFFFF"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.05"
+                android:background="@drawable/status_pill_err" />
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <TextView
+                android:id="@+id/dtcChip"
+                android:layout_width="wrap_content"
+                android:layout_height="24dp"
+                android:gravity="center_vertical"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:text="0 DTCs"
+                android:textColor="@color/textSecondary"
+                android:textSize="11sp"
+                android:background="@drawable/status_chip_neutral"
+                android:visibility="gone"
+                android:layout_marginEnd="6dp" />
+
+            <TextView
+                android:id="@+id/thermalChip"
+                android:layout_width="wrap_content"
+                android:layout_height="24dp"
+                android:gravity="center_vertical"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:text=""
+                android:textColor="#000000"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:background="@drawable/status_pill_warn"
+                android:visibility="gone" />
+
+        </LinearLayout>
 
         <!-- CONTENT AREA -->
         <FrameLayout
             android:id="@+id/content_container"
             android:layout_width="0dp"
             android:layout_height="0dp"
-            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/statusBar"
+            app:layout_constraintBottom_toTopOf="@id/bottomNav"
             app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <!-- Hidden legacy banner — kept as a no-op TextView so any code path that still
+             references @id/connectionBanner (until the controllers fully migrate) doesn't NPE. -->
+        <TextView
+            android:id="@+id/connectionBanner"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone" />
+
+        <!-- BOTTOM NAV -->
+        <com.google.android.material.bottomnavigation.BottomNavigationView
+            android:id="@+id/bottomNav"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:background="@color/surfaceTopBar"
+            app:itemTextColor="@color/bmwBlau"
+            app:itemIconTint="@color/bmwBlau"
+            app:menu="@menu/bottom_nav"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/divider" />
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -78,9 +164,9 @@
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:layout_gravity="start"
-        android:background="#1A1A2E"
-        app:itemTextColor="@color/primaryTextColor"
-        app:itemIconTint="@color/accentColor"
+        android:background="@color/surfaceTopBar"
+        app:itemTextColor="@color/textPrimary"
+        app:itemIconTint="@color/bmwBlau"
         app:menu="@menu/drawer_menu"
         app:itemTextAppearance="@style/TextAppearance.AppCompat.Medium" />
 

@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    DTC help bottom-sheet content. Bound by DtcHelpController.
+    Sections from top: heading + severity chip · plain-English explanation ·
+    likely causes (from dictionary) · parts to check · DIY procedure ·
+    4 action buttons (YouTube · Parts · Read aloud · Ask AI).
+-->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/surfaceBase">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="18dp">
+
+        <!-- Header row: code (big) + severity chip -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingBottom="2dp">
+
+            <TextView
+                android:id="@+id/dtcHelpCode"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="P0420"
+                android:textColor="@color/textPrimary"
+                android:textSize="34sp"
+                android:textStyle="bold"
+                android:fontFeatureSettings="tnum"
+                android:letterSpacing="0.04" />
+
+            <TextView
+                android:id="@+id/dtcHelpSeverityChip"
+                android:layout_width="wrap_content"
+                android:layout_height="24dp"
+                android:gravity="center_vertical"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:text="MEDIUM"
+                android:textColor="#000000"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.1"
+                android:background="@drawable/status_pill_warn" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/dtcHelpTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Catalyst efficiency below threshold"
+            android:textColor="@color/textPrimary"
+            android:textSize="16sp"
+            android:paddingBottom="12dp" />
+
+        <!-- WHAT THIS MEANS -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="WHAT THIS MEANS"
+            android:textAppearance="@style/Text.Section"
+            android:paddingBottom="4dp" />
+
+        <TextView
+            android:id="@+id/dtcHelpCause"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/textPrimary"
+            android:textSize="13sp"
+            android:lineSpacingExtra="2dp"
+            android:background="@drawable/card_bg"
+            android:padding="12dp"
+            android:layout_marginBottom="12dp" />
+
+        <!-- PARTS TO CHECK -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="PARTS TO CHECK / REPLACE"
+            android:textAppearance="@style/Text.Section"
+            android:paddingBottom="4dp" />
+
+        <TextView
+            android:id="@+id/dtcHelpParts"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/textPrimary"
+            android:textSize="13sp"
+            android:fontFamily="monospace"
+            android:lineSpacingExtra="3dp"
+            android:background="@drawable/card_bg"
+            android:padding="12dp"
+            android:layout_marginBottom="12dp" />
+
+        <!-- DIY PROCEDURE -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="DIY PROCEDURE"
+            android:textAppearance="@style/Text.Section"
+            android:paddingBottom="4dp" />
+
+        <TextView
+            android:id="@+id/dtcHelpProcedure"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/textPrimary"
+            android:textSize="13sp"
+            android:lineSpacingExtra="3dp"
+            android:background="@drawable/card_bg"
+            android:padding="12dp"
+            android:layout_marginBottom="6dp" />
+
+        <TextView
+            android:id="@+id/dtcHelpDiyRating"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="DIY difficulty: ★★★☆☆"
+            android:textColor="@color/textSecondary"
+            android:textSize="11sp"
+            android:paddingBottom="14dp" />
+
+        <!-- ACTIONS -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="GET HELP"
+            android:textAppearance="@style/Text.Section"
+            android:paddingBottom="6dp" />
+
+        <!-- Row 1: YouTube · Parts -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingBottom="6dp">
+
+            <Button
+                android:id="@+id/btnDtcYoutube"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="4dp"
+                android:text="▶  YouTube fix videos"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:backgroundTint="#C40C0C" />
+
+            <Button
+                android:id="@+id/btnDtcParts"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:text="🛒  Find parts"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:backgroundTint="@color/bmwBlau" />
+        </LinearLayout>
+
+        <!-- Row 2: Ask AI · Read aloud -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingBottom="10dp">
+
+            <Button
+                android:id="@+id/btnDtcAskAi"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="4dp"
+                android:text="🤖  Ask AI"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:backgroundTint="#4CAF50" />
+
+            <Button
+                android:id="@+id/btnDtcReadAloud"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:text="🔊  Read aloud"
+                android:textColor="@color/textPrimary"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:backgroundTint="@color/surfaceCard" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Ask AI opens your browser with a prompt pre-filled — pick ChatGPT, Claude, Gemini, or Perplexity. All have free tiers. Nothing leaves the app until you tap."
+            android:textColor="@color/textSecondary"
+            android:textSize="10sp"
+            android:lineSpacingExtra="1dp"
+            android:paddingBottom="14dp" />
+
+    </LinearLayout>
+</ScrollView>

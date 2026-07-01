@@ -1,0 +1,41 @@
+---- OBD2 app crash report ----
+time:    Tue Jun 30 07:31:55 GMT+04:00 2026
+thread:  Thread-2 (id=13465)
+device:  TECNO TECNO KM9
+android: 15 (sdk 35)
+
+---- stacktrace ----
+java.lang.NullPointerException: Attempt to invoke virtual method 'int java.io.BufferedInputStream.available()' on a null object reference
+	at com.example.obd.ObdConnection.captureInit(ObdConnection.java:231)
+	at com.example.obd.ObdConnection.probeProtocol(ObdConnection.java:193)
+	at com.example.obd.ObdConnection.initElm327(ObdConnection.java:163)
+	at com.example.obd.ObdConnection.connect(ObdConnection.java:80)
+	at com.example.obd.ObdManagerFast.connect(ObdManagerFast.java:36)
+	at com.example.obd.BluetoothHelper.lambda$showPairedDevicesAndConnect$6$com-example-obd-BluetoothHelper(BluetoothHelper.java:143)
+	at com.example.obd.BluetoothHelper$$ExternalSyntheticLambda1.run(D8$$SyntheticClass:0)
+	at java.lang.Thread.run(Thread.java:1572)
+
+---- recent ObdLogger entries ----
+07:31:42.938  [INFO]  ---- log session start (pid=6533) ----
+07:31:48.318  [INFO]  Connecting to DC:0D:30:E2:51:FD
+07:31:48.350  [INFO]  Device type=CLASSIC name=vLinker BM-Android
+07:31:48.350  [INFO]  Opening RFCOMM SPP
+07:31:48.352  [INFO]  Bond state: BONDED
+07:31:50.437  [INFO]  RFCOMM socket open
+07:31:50.439  [TX]  init> ATZ
+07:31:51.423  [RX]  init< ATZELM327 v2.2
+07:31:51.426  [TX]  init> ATE0
+07:31:51.470  [RX]  init< ATE0OK
+07:31:51.513  [TX]  init> ATL0
+07:31:51.537  [RX]  init< OK
+07:31:51.579  [TX]  init> ATH0
+07:31:51.623  [RX]  init< OK
+07:31:51.666  [TX]  init> ATCAF1
+07:31:51.710  [RX]  init< OK
+07:31:51.753  [TX]  init> ATST 64
+07:31:51.817  [RX]  init< OK
+07:31:51.861  [TX]  init> ATAT2
+07:31:51.885  [RX]  init< OK
+07:31:51.928  [TX]  init> ATSP0
+07:31:51.993  [RX]  init< OK
+07:31:51.996  [TX]  init> 0100

@@ -1,51 +1,106 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    Drawer menu. Primary destinations live on the bottom nav (Drive / Diagnose /
+    Garage). The drawer holds Live Data browsing (filtered by car system) plus
+    less-frequent screens. Live Data items all route to the SAME screen with a
+    different category filter preset — same data, scannable layout.
+-->
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
+
     <group android:checkableBehavior="single">
         <item
             android:id="@+id/nav_welcome"
-            android:title="🏠  Welcome" />
+            android:title="Welcome" />
         <item
-            android:id="@+id/nav_speed"
-            android:title="🏎️  Speed" />
+            android:id="@+id/nav_dashboard"
+            android:title="Dashboard" />
         <item
-            android:id="@+id/nav_speed_rpm"
-            android:title="⏱️  Speed / RPM" />
+            android:id="@+id/nav_dashboard_gauges"
+            android:title="Gauge Dashboard" />
         <item
-            android:id="@+id/nav_temp_pressure"
-            android:title="🌡️  Temp / Pressure" />
+            android:id="@+id/nav_dashboard_hud"
+            android:title="HUD Dashboard" />
         <item
-            android:id="@+id/nav_electrical"
-            android:title="🔋  Electrical" />
+            android:id="@+id/nav_odometer"
+            android:title="Odometer" />
         <item
-            android:id="@+id/nav_thermalcontrol"
-            android:title="🔥  Thermal Control" />
+            android:id="@+id/nav_faultcodes"
+            android:title="Fault Codes" />
         <item
-            android:id="@+id/nav_enginecontrol"
-            android:title="⚙️  Engine Control" />
+            android:id="@+id/nav_sensors"
+            android:title="Car &amp; Sensors" />
         <item
-            android:id="@+id/nav_fuelcontrol"
-            android:title="⛽  Fuel Control" />
+            android:id="@+id/nav_garage"
+            android:title="Garage" />
+    </group>
+
+    <group android:checkableBehavior="single">
         <item
-            android:id="@+id/nav_performancedynamic"
-            android:title="🏁  Performance" />
+            android:id="@+id/nav_live_all"
+            android:title="Live Data — All sensors" />
         <item
-            android:id="@+id/nav_turbomonitoring"
-            android:title="💨  Turbo Monitoring" />
+            android:id="@+id/nav_live_powertrain"
+            android:title="Live · Powertrain" />
         <item
-            android:id="@+id/nav_normal"
-            android:title="🌡️  Coolant / Oil" />
+            android:id="@+id/nav_live_thermal"
+            android:title="Live · Thermal" />
+        <item
+            android:id="@+id/nav_live_fuel"
+            android:title="Live · Fuel &amp; Air" />
+        <item
+            android:id="@+id/nav_live_electrical"
+            android:title="Live · Electrical" />
+        <item
+            android:id="@+id/nav_live_performance"
+            android:title="Live · Performance" />
+        <item
+            android:id="@+id/nav_live_emissions"
+            android:title="Live · Emissions" />
+    </group>
+
+    <group android:checkableBehavior="single">
         <item
             android:id="@+id/nav_analytics"
-            android:title="📈  Daten-Analyse" />
+            android:title="Trends" />
         <item
             android:id="@+id/nav_sprint"
-            android:title="⏱  0–100 Timer" />
+            android:title="0–100 Timer" />
+        <item
+            android:id="@+id/nav_knowledge"
+            android:title="Knowledge Base" />
+        <item
+            android:id="@+id/nav_service"
+            android:title="Service Functions" />
+        <item
+            android:id="@+id/nav_ai_estimator"
+            android:title="AI Repair Estimator" />
+        <item
+            android:id="@+id/nav_car_advisor"
+            android:title="Help Me Buy a Car" />
+        <item
+            android:id="@+id/nav_scan_reports"
+            android:title="Scan Reports" />
     </group>
 
     <item
-        android:id="@+id/nav_settings"
-        android:title="⚙️  Settings" />
+        android:id="@+id/nav_debuglog"
+        android:title="Debug Log" />
+    <item
+        android:id="@+id/nav_simulator"
+        android:title="Simulator Mode (no car needed)" />
+    <item
+        android:id="@+id/nav_selftest"
+        android:title="Run Self-Test" />
+    <item
+        android:id="@+id/nav_clear_data"
+        android:title="Clear Data (logs &amp; cache)" />
+    <item
+        android:id="@+id/nav_bt_reset"
+        android:title="Reset Bluetooth Pairing" />
     <item
         android:id="@+id/nav_disconnect"
-        android:title="❌  Disconnect" />
+        android:title="Disconnect" />
+    <!-- Settings intentionally omitted — there's no screen yet. Add the item back
+         and the matching handler in MainActivity when a settings screen ships. -->
+
 </menu>

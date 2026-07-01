@@ -1,0 +1,79 @@
+---- OBD2 app crash report ----
+time:    Sat Jun 27 17:50:19 GMT+04:00 2026
+thread:  main (id=2)
+device:  TECNO TECNO KM9
+android: 15 (sdk 35)
+
+---- stacktrace ----
+java.lang.NullPointerException: Attempt to invoke virtual method 'int android.speech.tts.TextToSpeech.setLanguage(java.util.Locale)' on a null object reference
+	at com.example.obd.AlertManager.lambda$init$0$com-example-obd-AlertManager(AlertManager.java:29)
+	at com.example.obd.AlertManager$$ExternalSyntheticLambda0.onInit(D8$$SyntheticClass:0)
+	at android.speech.tts.TextToSpeech.lambda$dispatchOnInit$0(TextToSpeech.java:934)
+	at android.speech.tts.TextToSpeech.$r8$lambda$y-uaMPlobiYouiY_T7xFoJSwPww(TextToSpeech.java:0)
+	at android.speech.tts.TextToSpeech$$ExternalSyntheticLambda13.run(D8$$SyntheticClass:0)
+	at android.speech.tts.TextToSpeech.dispatchOnInit(TextToSpeech.java:943)
+	at android.speech.tts.TextToSpeech.-$$Nest$mdispatchOnInit(TextToSpeech.java:0)
+	at android.speech.tts.TextToSpeech$Connection$SetupConnectionAsyncTask.onPostExecute(TextToSpeech.java:2328)
+	at android.speech.tts.TextToSpeech$Connection$SetupConnectionAsyncTask.onPostExecute(TextToSpeech.java:2284)
+	at android.os.AsyncTask.finish(AsyncTask.java:771)
+	at android.os.AsyncTask.-$$Nest$mfinish(AsyncTask.java:0)
+	at android.os.AsyncTask$InternalHandler.handleMessage(AsyncTask.java:788)
+	at android.os.Handler.dispatchMessage(Handler.java:107)
+	at android.os.Looper.loopOnce(Looper.java:311)
+	at android.os.Looper.loop(Looper.java:408)
+	at android.app.ActivityThread.main(ActivityThread.java:9119)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:627)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:970)
+
+---- recent ObdLogger entries ----
+20:58:42.950  [INFO]  ---- log session start (pid=5080) ----
+20:58:43.180  [INFO]  Auto-connecting to DC:0D:30:E2:51:FD
+20:58:43.196  [INFO]  Device type=CLASSIC name=vLinker BM-Android
+20:58:43.201  [INFO]  Opening RFCOMM SPP
+20:58:43.207  [INFO]  Bond state: BONDED
+20:58:43.389  [INFO]  RFCOMM socket open
+20:58:43.393  [TX]  init> ATZ
+20:58:44.356  [RX]  init< ELM327 v2.2
+20:58:45.158  [TX]  init> ATE0
+20:58:45.222  [RX]  init< ATE0OK
+20:58:45.303  [TX]  init> ATL0
+20:58:45.347  [RX]  init< OK
+20:58:45.428  [TX]  init> ATH0
+20:58:45.472  [RX]  init< OK
+20:58:45.554  [TX]  init> ATCAF1
+20:58:45.576  [RX]  init< OK
+20:58:45.658  [TX]  init> ATST 64
+20:58:45.682  [RX]  init< OK
+20:58:45.764  [TX]  init> ATAT2
+20:58:45.790  [RX]  init< OK
+20:58:45.873  [TX]  init> ATSP0
+20:58:45.916  [RX]  init< OK
+20:58:45.918  [TX]  init> 0100
+20:58:47.343  [RX]  init< SEARCHING...STOPPED
+20:58:48.847  [INFO]  Probe ATSP0 -> no-data
+20:58:48.848  [INFO]  ATSP0 auto-detect did not respond to 0100; forcing ATSP6 (CAN 11/500) for BMW E65
+20:58:48.850  [TX]  init> ATSP6
+20:58:49.015  [RX]  init< CAN ERROR
+20:58:49.017  [TX]  init> 0100
+20:58:49.122  [RX]  init< CAN ERROR
+20:58:50.624  [INFO]  Probe ATSP6 -> no-data
+20:58:50.626  [INFO]  ATSP6 also failed; trying ATSP7 (CAN 29/500)
+20:58:50.631  [TX]  init> ATSP7
+20:58:52.984  [RX]  init< CAN ERCAN ERROR
+20:58:52.987  [TX]  init> 0100
+20:58:53.691  [RX]  init< CAN ERROR
+20:58:55.712  [INFO]  Probe ATSP7 -> no-data
+20:58:55.714  [ERROR]  Protocol detection failed on ATSP0/6/7 — polling will likely return NO DATA
+20:58:55.716  [TX]  init> ATDPN
+20:58:55.890  [RX]  init< CAN ERROR
+20:58:55.891  [INFO]  ELM327 init complete
+20:58:55.892  [INFO]  Auto-connect OK
+17:50:16.587  [INFO]  Auto-connecting to DC:0D:30:E2:51:FD
+17:50:16.635  [INFO]  Device type=CLASSIC name=vLinker BM-Android
+17:50:16.637  [INFO]  Opening RFCOMM SPP
+17:50:16.652  [INFO]  Bond state: BONDED
+17:50:18.122  [INFO]  Auto-connecting to DC:0D:30:E2:51:FD
+17:50:18.147  [INFO]  Device type=CLASSIC name=vLinker BM-Android
+17:50:18.149  [INFO]  Opening RFCOMM SPP
+17:50:18.152  [INFO]  Bond state: BONDED

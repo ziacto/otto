@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    BMW 730li (E65) side profile, stylized line-art. Long hood, low roofline,
+    Hofmeister kink at C-pillar, twin-kidney grille hint, M-Sport-style alloy
+    rims. Stroked in BMW Blau so the silhouette reads as the brand even before
+    the user notices the badge.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="380dp"
+    android:height="160dp"
+    android:viewportWidth="190"
+    android:viewportHeight="80">
+
+    <!-- Ground line -->
+    <path android:strokeColor="#2A2A3A" android:strokeWidth="0.5"
+        android:pathData="M5,72 L185,72" />
+
+    <!-- Body: long hood + cabin + boot in one continuous stroke -->
+    <path
+        android:fillColor="#121825"
+        android:strokeColor="#1E5C96"
+        android:strokeWidth="0.9"
+        android:pathData="M14,58 L14,50 Q14,44 22,42 L46,42 L60,32 Q70,28 105,28 Q138,28 150,34 L172,42 L178,44 Q183,46 183,52 L183,62 Q183,66 178,66 L165,66 L160,66 Q158,70 154,70 Q150,70 148,66 L42,66 Q40,70 36,70 Q32,70 30,66 L18,66 Q14,66 14,62 Z" />
+
+    <!-- Front windshield -->
+    <path android:fillColor="#0A0A12" android:strokeColor="#1E5C96" android:strokeWidth="0.5"
+        android:pathData="M50,42 L62,32 L88,32 L82,42 Z" />
+
+    <!-- Front door window -->
+    <path android:fillColor="#0A0A12" android:strokeColor="#1E5C96" android:strokeWidth="0.5"
+        android:pathData="M84,32 L116,30 L114,42 L84,42 Z" />
+
+    <!-- Rear door window — Hofmeister kink at trailing edge -->
+    <path android:fillColor="#0A0A12" android:strokeColor="#1E5C96" android:strokeWidth="0.5"
+        android:pathData="M118,30 L142,32 L146,42 L116,42 L116,32 Z" />
+
+    <!-- Belt-line crease running door-to-door -->
+    <path android:fillColor="#00000000" android:strokeColor="#1E5C96" android:strokeWidth="0.45"
+        android:pathData="M22,52 L182,52" />
+
+    <!-- Door cut lines -->
+    <path android:fillColor="#00000000" android:strokeColor="#0F2A48" android:strokeWidth="0.4"
+        android:pathData="M82,44 L82,66" />
+    <path android:fillColor="#00000000" android:strokeColor="#0F2A48" android:strokeWidth="0.4"
+        android:pathData="M116,44 L116,66" />
+
+    <!-- Kidney grille hint (front) -->
+    <path android:fillColor="#1E5C96"
+        android:pathData="M16,55 L19,55 L19,60 L16,60 Z" />
+    <path android:fillColor="#1E5C96"
+        android:pathData="M20,55 L23,55 L23,60 L20,60 Z" />
+
+    <!-- Headlight cluster -->
+    <path android:fillColor="#EAEAEA"
+        android:pathData="M16,49 L24,47 L24,52 L16,52 Z" />
+
+    <!-- Tail light (M-Rot accent) -->
+    <path android:fillColor="#C40C0C"
+        android:pathData="M174,52 L182,50 L182,56 L174,57 Z" />
+
+    <!-- Front wheel arch + tire -->
+    <path android:fillColor="#0A0A12" android:strokeColor="#1E5C96" android:strokeWidth="0.5"
+        android:pathData="M22,66 Q22,76 36,76 Q50,76 50,66 Z" />
+    <path android:fillColor="#161625" android:strokeColor="#1E5C96" android:strokeWidth="0.45"
+        android:pathData="M30,70 m-6,0 a6,6 0 1,0 12,0 a6,6 0 1,0 -12,0" />
+    <path android:fillColor="#00000000" android:strokeColor="#1E5C96" android:strokeWidth="0.4"
+        android:pathData="M36,70 L34,68 M36,70 L34,72 M30,67 L34,70 M30,73 L34,70" />
+
+    <!-- Rear wheel arch + tire -->
+    <path android:fillColor="#0A0A12" android:strokeColor="#1E5C96" android:strokeWidth="0.5"
+        android:pathData="M140,66 Q140,76 154,76 Q168,76 168,66 Z" />
+    <path android:fillColor="#161625" android:strokeColor="#1E5C96" android:strokeWidth="0.45"
+        android:pathData="M148,70 m-6,0 a6,6 0 1,0 12,0 a6,6 0 1,0 -12,0" />
+    <path android:fillColor="#00000000" android:strokeColor="#1E5C96" android:strokeWidth="0.4"
+        android:pathData="M154,70 L152,68 M154,70 L152,72 M148,67 L152,70 M148,73 L152,70" />
+
+    <!-- Subtle BMW roundel hint on rear pillar -->
+    <path android:fillColor="#1E5C96"
+        android:pathData="M150,38 m-1.4,0 a1.4,1.4 0 1,0 2.8,0 a1.4,1.4 0 1,0 -2.8,0" />
+</vector>

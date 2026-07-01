@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/darkBackground"
+    android:padding="14dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Car &amp; Sensors — BMW E65 730li"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="@color/accentColor"
+        android:paddingBottom="4dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Swipe ← → to rotate views. Tap a sensor pin for what it does, fault codes, and symptoms."
+        android:textSize="11sp"
+        android:textColor="@color/secondaryTextColor"
+        android:paddingBottom="10dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingBottom="10dp">
+        <Button
+            android:id="@+id/btnViewSide"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="3dp"
+            android:text="Side"
+            android:textSize="12sp"
+            android:backgroundTint="@color/accentColor"
+            android:textColor="#000000" />
+        <Button
+            android:id="@+id/btnViewFront"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:layout_marginStart="3dp"
+            android:layout_marginEnd="3dp"
+            android:text="Front"
+            android:textSize="12sp"
+            android:backgroundTint="#03DAC5"
+            android:textColor="#000000" />
+        <Button
+            android:id="@+id/btnViewTop"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:layout_marginStart="3dp"
+            android:layout_marginEnd="3dp"
+            android:text="Top"
+            android:textSize="12sp"
+            android:backgroundTint="#03DAC5"
+            android:textColor="#000000" />
+        <Button
+            android:id="@+id/btnViewEngine"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:layout_marginStart="3dp"
+            android:text="Engine"
+            android:textSize="12sp"
+            android:backgroundTint="#03DAC5"
+            android:textColor="#000000" />
+    </LinearLayout>
+
+    <FrameLayout
+        android:id="@+id/sensorStage"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="#0E0E1A">
+
+        <ImageView
+            android:id="@+id/carImage"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:adjustViewBounds="true"
+            android:contentDescription="Car diagram"
+            android:src="@drawable/car_view_side" />
+
+        <!-- Hotspots are added programmatically as floating ImageButtons over this FrameLayout -->
+    </FrameLayout>
+
+    <TextView
+        android:id="@+id/sensorHint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Drop your own PNG into res/drawable/car_view_side.png (and _front/_top/_engine) to replace the placeholder diagrams."
+        android:textSize="10sp"
+        android:textColor="#60FFFFFF"
+        android:paddingTop="8dp" />
+</LinearLayout>

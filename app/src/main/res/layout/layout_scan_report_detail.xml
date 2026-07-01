@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0E0E1A"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="10dp"
+        android:background="#152633">
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnReportBack"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:layout_marginEnd="6dp"
+            android:background="#1F2A35"
+            android:text="← Back"
+            android:textColor="#FFFFFF"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:includeFontPadding="false"
+            android:stateListAnimator="@null"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp" />
+
+        <TextView
+            android:id="@+id/tvReportTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:text=""
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:ellipsize="end"
+            android:maxLines="2" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnReportShare"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:background="#03DAC5"
+            android:text="Share"
+            android:textColor="#000000"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:includeFontPadding="false"
+            android:stateListAnimator="@null"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp" />
+    </LinearLayout>
+
+    <WebView
+        android:id="@+id/reportWebView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#0E0E1A" />
+</LinearLayout>

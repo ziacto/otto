@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#05060B"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Scan Reports"
+        android:textColor="#FFFFFF"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:paddingBottom="4dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Every DTC scan, module read, and AI estimate is saved here. Tap a row to open the full HTML report."
+        android:textColor="#9098A8"
+        android:textSize="12sp"
+        android:paddingBottom="10dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingBottom="10dp">
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnReportsClear"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="6dp"
+            android:background="#22FF6E6E"
+            android:text="Clear all"
+            android:textColor="#FF6E6E"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:includeFontPadding="false"
+            android:stateListAnimator="@null"
+            android:minWidth="0dp"
+            android:minHeight="0dp" />
+
+        <TextView
+            android:id="@+id/tvReportsCount"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:gravity="end|center_vertical"
+            android:text=""
+            android:textColor="#9098A8"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:id="@+id/reportsContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+    </ScrollView>
+</LinearLayout>

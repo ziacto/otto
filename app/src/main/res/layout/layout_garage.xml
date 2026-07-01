@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/darkBackground"
+    android:padding="14dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Garage — Maintenance &amp; Trips"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="@color/accentColor"
+        android:paddingBottom="4dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="CBS-style maintenance ledger per VIN. Battery + trend warnings appear here when data accumulates."
+        android:textSize="11sp"
+        android:textColor="@color/secondaryTextColor"
+        android:paddingBottom="10dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="8dp">
+        <Button
+            android:id="@+id/btnGarageAddOil"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="3dp"
+            android:text="+ Oil done"
+            android:textSize="11sp"
+            android:backgroundTint="@color/accentColor"
+            android:textColor="#000000" />
+        <Button
+            android:id="@+id/btnGarageAddBrake"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:layout_marginStart="3dp"
+            android:layout_marginEnd="3dp"
+            android:text="+ Brakes"
+            android:textSize="11sp"
+            android:backgroundTint="@color/accentColor"
+            android:textColor="#000000" />
+        <Button
+            android:id="@+id/btnGarageAddFilter"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:layout_marginStart="3dp"
+            android:layout_marginEnd="3dp"
+            android:text="+ Filter"
+            android:textSize="11sp"
+            android:backgroundTint="@color/accentColor"
+            android:textColor="#000000" />
+        <Button
+            android:id="@+id/btnGarageAddPlugs"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:layout_marginStart="3dp"
+            android:text="+ Plugs"
+            android:textSize="11sp"
+            android:backgroundTint="@color/accentColor"
+            android:textColor="#000000" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="CBS COUNTDOWN"
+        android:textAppearance="@style/Text.Section"
+        android:paddingBottom="4dp" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="@color/surfaceCard"
+        android:padding="12dp">
+
+        <TextView
+            android:id="@+id/tvGarageContent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/textPrimary"
+            android:textSize="13sp"
+            android:fontFamily="monospace"
+            android:text="" />
+    </ScrollView>
+
+    <!-- 30-day single-PID trend, pulled from the PidSample Room table. -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="30-DAY TREND"
+        android:textAppearance="@style/Text.Section"
+        android:paddingTop="10dp"
+        android:paddingBottom="4dp" />
+
+    <Spinner
+        android:id="@+id/spinnerTrendPid"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="6dp" />
+
+    <com.github.mikephil.charting.charts.LineChart
+        android:id="@+id/garageTrendChart"
+        android:layout_width="match_parent"
+        android:layout_height="160dp" />
+
+    <Button
+        android:id="@+id/btnExportCsv"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_marginTop="8dp"
+        android:text="Export CSV"
+        android:textSize="12sp"
+        android:textColor="#FFFFFF"
+        android:backgroundTint="@color/bmwBlau" />
+
+</LinearLayout>

@@ -1,0 +1,2 @@
+# E65 D-CAN capture Fri Jun 26 20:54:35 GMT+04:00 2026
+# Format: <timestamp_ms> <CAN_ID> <data bytes>

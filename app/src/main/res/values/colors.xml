@@ -1,22 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    BMW-themed palette. Day variant (this file) — see values-night/colors.xml for the
+    night-cluster variant. Tokens are semantic; reach for them by intent (surface,
+    primary, alert) not by hue. Old generic names (darkPrimary / darkSecondary /
+    accentColor) are kept as aliases so legacy XML keeps compiling — newly written
+    layouts should use the bmw* / surface* / status* tokens directly.
+-->
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 
-        <!-- Dunkler Hintergrund -->
-        <color name="darkBackground">#121212</color>
+    <!-- Surfaces -->
+    <color name="surfaceBase">#0A0A12</color>          <!-- App background, cool matte black -->
+    <color name="surfaceCard">#161625</color>          <!-- Card / tile background -->
+    <color name="surfaceTopBar">#0E0E1A</color>        <!-- App top bar, slightly above base -->
+    <color name="surfaceStroke">#22273A</color>        <!-- 1dp hairlines on cards -->
 
-        <!-- Textfarben für den Dunkelmodus -->
-        <color name="primaryTextColor">#FFFFFF</color>  <!-- Weiß für primären Text -->
-        <color name="secondaryTextColor">#B0B0B0</color>  <!-- Hellgrau für sekundären Text -->
+    <!-- BMW M-tricolor accents — used SPARINGLY -->
+    <color name="bmwBlau">#1E5C96</color>              <!-- Primary BMW corporate blue -->
+    <color name="bmwBlauDim">#1A4A7A</color>           <!-- Pressed / disabled state -->
+    <color name="bmwRot">#C40C0C</color>               <!-- M motorsports red, critical only -->
+    <color name="bmwViolett">#7030A0</color>           <!-- M tricolor third, future states -->
 
-        <!-- Farben für primäre und sekundäre Akzentfarben -->
-        <color name="darkPrimary">#6200EE</color>  <!-- Dunkelviolett für die primäre Farbe -->
-        <color name="darkPrimaryVariant">#3700B3</color>  <!-- Dunkleres Violett für Varianten -->
-        <color name="darkSecondary">#03DAC5</color>  <!-- Türkis für die sekundäre Farbe -->
+    <!-- Text -->
+    <color name="textPrimary">#EAEAEA</color>          <!-- Off-white, less eye strain than pure white -->
+    <color name="textSecondary">#9AA0AC</color>        <!-- For captions, labels -->
+    <color name="textHint">#5A6072</color>             <!-- Placeholder / muted -->
 
-        <!-- Akzentfarbe für UI-Elemente -->
-        <color name="accentColor">#03DAC5</color>  <!-- Ein helles Türkis für Akzente -->
+    <!-- Status (traffic-light semantics) -->
+    <color name="statusOk">#4CAF50</color>             <!-- Normal / healthy reading -->
+    <color name="statusWarn">#FFC107</color>           <!-- Caution / approaching threshold -->
+    <color name="statusError">#D32F2F</color>          <!-- Out of range / DTC -->
+    <color name="statusInfo">#1E5C96</color>           <!-- Informational / connected -->
 
-
+    <!-- Legacy aliases — old layouts still reference these. Repoint to the new tokens
+         instead of doing a global rename pass so existing XML keeps rendering. -->
+    <color name="darkBackground">#0A0A12</color>
+    <color name="primaryTextColor">#EAEAEA</color>
+    <color name="secondaryTextColor">#9AA0AC</color>
+    <color name="darkPrimary">#1E5C96</color>
+    <color name="darkPrimaryVariant">#1A4A7A</color>
+    <color name="darkSecondary">#1E5C96</color>
+    <color name="accentColor">#1E5C96</color>
 </resources>

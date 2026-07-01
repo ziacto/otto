@@ -1,0 +1,42 @@
+---- OBD2 app crash report ----
+time:    Fri Jun 26 20:58:39 GMT+04:00 2026
+thread:  main (id=2)
+device:  TECNO TECNO KM9
+android: 15 (sdk 35)
+
+---- stacktrace ----
+java.lang.NullPointerException: Attempt to invoke virtual method 'int android.speech.tts.TextToSpeech.setLanguage(java.util.Locale)' on a null object reference
+	at com.example.obd.AlertManager.lambda$init$0$com-example-obd-AlertManager(AlertManager.java:29)
+	at com.example.obd.AlertManager$$ExternalSyntheticLambda0.onInit(D8$$SyntheticClass:0)
+	at android.speech.tts.TextToSpeech.lambda$dispatchOnInit$0(TextToSpeech.java:934)
+	at android.speech.tts.TextToSpeech.$r8$lambda$y-uaMPlobiYouiY_T7xFoJSwPww(TextToSpeech.java:0)
+	at android.speech.tts.TextToSpeech$$ExternalSyntheticLambda13.run(D8$$SyntheticClass:0)
+	at android.speech.tts.TextToSpeech.dispatchOnInit(TextToSpeech.java:943)
+	at android.speech.tts.TextToSpeech.-$$Nest$mdispatchOnInit(TextToSpeech.java:0)
+	at android.speech.tts.TextToSpeech$Connection$SetupConnectionAsyncTask.onPostExecute(TextToSpeech.java:2328)
+	at android.speech.tts.TextToSpeech$Connection$SetupConnectionAsyncTask.onPostExecute(TextToSpeech.java:2284)
+	at android.os.AsyncTask.finish(AsyncTask.java:771)
+	at android.os.AsyncTask.-$$Nest$mfinish(AsyncTask.java:0)
+	at android.os.AsyncTask$InternalHandler.handleMessage(AsyncTask.java:788)
+	at android.os.Handler.dispatchMessage(Handler.java:107)
+	at android.os.Looper.loopOnce(Looper.java:311)
+	at android.os.Looper.loop(Looper.java:408)
+	at android.app.ActivityThread.main(ActivityThread.java:9119)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:627)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:970)
+
+---- recent ObdLogger entries ----
+20:57:54.653  [INFO]  ---- log session start (pid=4509) ----
+20:58:35.360  [INFO]  Auto-connecting to DC:0D:30:E2:51:FD
+20:58:35.376  [INFO]  Device type=CLASSIC name=vLinker BM-Android
+20:58:35.378  [INFO]  Opening RFCOMM SPP
+20:58:35.381  [INFO]  Bond state: BONDED
+20:58:38.034  [INFO]  Auto-connecting to DC:0D:30:E2:51:FD
+20:58:38.091  [INFO]  Device type=CLASSIC name=vLinker BM-Android
+20:58:38.094  [INFO]  Opening RFCOMM SPP
+20:58:38.097  [INFO]  Bond state: BONDED
+20:58:39.170  [INFO]  Auto-connecting to DC:0D:30:E2:51:FD
+20:58:39.179  [INFO]  Device type=CLASSIC name=vLinker BM-Android
+20:58:39.182  [INFO]  Opening RFCOMM SPP
+20:58:39.182  [INFO]  Bond state: BONDED

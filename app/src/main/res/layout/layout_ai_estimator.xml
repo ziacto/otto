@@ -1,0 +1,347 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="AI Repair Estimator"
+            android:textColor="@color/white"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:paddingBottom="4dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Upload a photo of any damaged car part. Otto returns a full repair handout — parts, prices, step-by-step instructions, diagram links, and Dubai workshop suggestions."
+            android:textColor="#B0B0B0"
+            android:textSize="13sp"
+            android:paddingBottom="12dp" />
+
+        <!-- Your Car badge — populated from VinDecoder when a VIN is in the Room
+             DB. Renders prominently so the user can see what car Otto is using
+             as context for the estimate. -->
+        <LinearLayout
+            android:id="@+id/yourCarBadge"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#1F3A4A"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="12dp"
+            android:layout_marginBottom="12dp"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🚗"
+                android:textSize="22sp"
+                android:paddingEnd="10dp" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="YOUR CAR"
+                    android:textColor="#9E9E9E"
+                    android:textSize="10sp"
+                    android:letterSpacing="0.2"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvYourCar"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textColor="@color/white"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvYourCarSub"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textColor="#B0B0B0"
+                    android:textSize="11sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Photo + action card -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/card_bg"
+            android:orientation="vertical"
+            android:padding="14dp"
+            android:layout_marginBottom="14dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Damage photo"
+                android:textColor="@color/white"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:paddingBottom="8dp" />
+
+            <ImageView
+                android:id="@+id/imgPreview"
+                android:layout_width="match_parent"
+                android:layout_height="220dp"
+                android:scaleType="centerInside"
+                android:background="#161616"
+                android:contentDescription="Selected photo preview" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="10dp">
+
+                <Button
+                    android:id="@+id/btnPickPhoto"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="Pick photo" />
+
+                <View
+                    android:layout_width="8dp"
+                    android:layout_height="match_parent" />
+
+                <Button
+                    android:id="@+id/btnAnalyze"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="Analyze"
+                    android:enabled="false" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tvVinChip"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text=""
+                android:textColor="#03DAC5"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+            <EditText
+                android:id="@+id/etContext"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:hint="Optional context — e.g. car make/model, current DTC, symptoms"
+                android:inputType="textMultiLine|textCapSentences"
+                android:minLines="2"
+                android:maxLines="4"
+                android:textColor="@color/white"
+                android:textColorHint="#666"
+                android:background="#202020"
+                android:padding="10dp" />
+        </LinearLayout>
+
+        <!-- Result card -->
+        <LinearLayout
+            android:id="@+id/resultCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/card_bg"
+            android:orientation="vertical"
+            android:padding="14dp"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Analysis"
+                android:textColor="@color/white"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:paddingBottom="8dp" />
+
+            <ProgressBar
+                android:id="@+id/progress"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tvSeverity"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textColor="#000000"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:paddingLeft="10dp"
+                android:paddingRight="10dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                android:background="#FFB300"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tvIdentified"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textColor="@color/white"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:paddingTop="8dp" />
+
+            <TextView
+                android:id="@+id/tvSummary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textColor="#C0C0C0"
+                android:textSize="13sp"
+                android:paddingTop="4dp"
+                android:paddingBottom="10dp"
+                android:textIsSelectable="true" />
+
+            <LinearLayout
+                android:id="@+id/partsContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+            <TextView
+                android:id="@+id/tvTotals"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textColor="@color/white"
+                android:textSize="13sp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp" />
+
+            <Button
+                android:id="@+id/btnFindWorkshops"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="📍 Find nearby workshops"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tvResult"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textColor="#E0E0E0"
+                android:textSize="13sp"
+                android:textIsSelectable="true"
+                android:paddingTop="10dp"
+                android:visibility="gone" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Estimate is AI-generated and not a quote. Verify with a workshop before paying."
+                android:textColor="#808080"
+                android:textSize="11sp"
+                android:paddingTop="10dp"
+                android:textStyle="italic" />
+        </LinearLayout>
+
+        <!-- Follow-up chat card. Hidden until an estimate has been rendered so
+             users aren't confused by an empty chat box on first entry. Each
+             question is asked with the full estimate context + the original
+             photo re-attached, and Gemini answers with Google Search grounded
+             results (part prices, TSBs, recalls). -->
+        <LinearLayout
+            android:id="@+id/chatCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/card_bg"
+            android:orientation="vertical"
+            android:padding="14dp"
+            android:layout_marginTop="14dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="💬 Ask a follow-up"
+                android:textColor="@color/white"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:paddingBottom="4dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Questions about parts, prices, workshops, DIY steps — answered with live web search."
+                android:textColor="#909090"
+                android:textSize="11sp"
+                android:paddingBottom="10dp" />
+
+            <LinearLayout
+                android:id="@+id/chatMessages"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="10dp"
+                android:baselineAligned="false">
+
+                <EditText
+                    android:id="@+id/etChatInput"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:hint="e.g. Where can I buy this water pump in Deira?"
+                    android:inputType="textCapSentences"
+                    android:maxLines="3"
+                    android:textColor="@color/white"
+                    android:textColorHint="#666"
+                    android:background="#202020"
+                    android:padding="10dp"
+                    android:imeOptions="actionSend" />
+
+                <Button
+                    android:id="@+id/btnChatSend"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:text="Send"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Answers may cite sources — tap a link to open in your browser."
+                android:textColor="#606060"
+                android:textSize="10sp"
+                android:paddingTop="6dp"
+                android:textStyle="italic" />
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>

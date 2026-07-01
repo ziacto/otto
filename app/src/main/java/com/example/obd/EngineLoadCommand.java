@@ -12,6 +12,6 @@ public class EngineLoadCommand extends ObdCommand {
         String[] parts = rawResponse.split(" ");
         if (parts.length < 3) return 0;
         int A = Integer.parseInt(parts[2], 16);
-        return (100.0/255.0) / A;
+        return (100.0/255.0) * A;
     }
 }

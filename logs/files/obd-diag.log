@@ -1,0 +1,223 @@
+2026-06-29 11:56:44.699  [INFO]  ---- log session start (pid=26552) ----
+2026-06-29 11:56:45.624  [INFO]  ObdService: BT_CONNECT not granted, skipping FGS start
+2026-06-29 11:58:40.450  [INFO]  ---- log session start (pid=26553) ----
+2026-06-29 11:59:30.740  [INFO]  Auto-reconnect attempt #1
+2026-06-29 12:00:00.742  [INFO]  Auto-reconnect attempt #2
+2026-06-29 12:00:15.567  [INFO]  ---- log session start (pid=29054) ----
+2026-06-29 12:00:46.076  [INFO]  Auto-reconnect attempt #1
+2026-06-29 12:01:16.079  [INFO]  Auto-reconnect attempt #2
+2026-06-29 12:02:16.082  [INFO]  Auto-reconnect attempt #3
+2026-06-29 12:04:16.084  [INFO]  Auto-reconnect attempt #4
+2026-06-29 12:05:58.790  [INFO]  Auto-reconnect attempt #5
+2026-06-29 12:09:10.107  [INFO]  Car advisor OK (7688 chars)
+2026-06-29 12:10:25.056  [INFO]  ---- log session start (pid=29551) ----
+2026-06-29 12:10:55.593  [INFO]  Auto-reconnect attempt #1
+2026-06-29 12:11:25.598  [INFO]  Auto-reconnect attempt #2
+2026-06-29 12:12:25.600  [INFO]  Auto-reconnect attempt #3
+2026-06-29 12:29:43.204  [INFO]  Auto-reconnect attempt #4
+2026-06-29 12:30:09.602  [INFO]  Car advisor OK (7871 chars)
+2026-06-29 12:31:52.325  [INFO]  AI estimate OK (2569 chars)
+2026-06-29 12:33:43.207  [INFO]  Auto-reconnect attempt #5
+2026-06-29 13:25:23.602  [INFO]  ---- log session start (pid=783) ----
+2026-06-29 13:26:53.747  [INFO]  Auto-reconnect attempt #1
+2026-06-29 13:27:23.751  [INFO]  Auto-reconnect attempt #2
+2026-06-29 13:28:23.754  [INFO]  Auto-reconnect attempt #3
+2026-06-29 13:30:23.756  [INFO]  Auto-reconnect attempt #4
+2026-06-29 13:32:03.238  [INFO]  ---- log session start (pid=22284) ----
+2026-06-29 13:32:33.764  [INFO]  Auto-reconnect attempt #1
+2026-06-29 13:33:03.766  [INFO]  Auto-reconnect attempt #2
+2026-06-29 13:34:03.770  [INFO]  Auto-reconnect attempt #3
+2026-06-29 13:55:30.230  [INFO]  Auto-reconnect attempt #4
+2026-06-29 14:55:16.667  [INFO]  ---- log session start (pid=31160) ----
+2026-06-29 14:55:47.078  [INFO]  Auto-reconnect attempt #1
+2026-06-29 14:56:17.082  [INFO]  Auto-reconnect attempt #2
+2026-06-29 15:40:35.808  [INFO]  ---- log session start (pid=32655) ----
+2026-06-30 07:31:42.938  [INFO]  ---- log session start (pid=6533) ----
+2026-06-30 07:31:48.318  [INFO]  Connecting to DC:0D:30:E2:51:FD
+2026-06-30 07:31:48.350  [INFO]  Device type=CLASSIC name=vLinker BM-Android
+2026-06-30 07:31:48.350  [INFO]  Opening RFCOMM SPP
+2026-06-30 07:31:48.352  [INFO]  Bond state: BONDED
+2026-06-30 07:31:50.437  [INFO]  RFCOMM socket open
+2026-06-30 07:31:50.439  [TX]  init> ATZ
+2026-06-30 07:31:51.423  [RX]  init< ATZELM327 v2.2
+2026-06-30 07:31:51.426  [TX]  init> ATE0
+2026-06-30 07:31:51.470  [RX]  init< ATE0OK
+2026-06-30 07:31:51.513  [TX]  init> ATL0
+2026-06-30 07:31:51.537  [RX]  init< OK
+2026-06-30 07:31:51.579  [TX]  init> ATH0
+2026-06-30 07:31:51.623  [RX]  init< OK
+2026-06-30 07:31:51.666  [TX]  init> ATCAF1
+2026-06-30 07:31:51.710  [RX]  init< OK
+2026-06-30 07:31:51.753  [TX]  init> ATST 64
+2026-06-30 07:31:51.817  [RX]  init< OK
+2026-06-30 07:31:51.861  [TX]  init> ATAT2
+2026-06-30 07:31:51.885  [RX]  init< OK
+2026-06-30 07:31:51.928  [TX]  init> ATSP0
+2026-06-30 07:31:51.993  [RX]  init< OK
+2026-06-30 07:31:51.996  [TX]  init> 0100
+2026-06-30 07:31:59.215  [INFO]  ---- log session start (pid=17038) ----
+2026-06-30 07:32:02.863  [INFO]  Connecting to DC:0D:30:E2:51:FD
+2026-06-30 07:32:02.887  [INFO]  Device type=CLASSIC name=vLinker BM-Android
+2026-06-30 07:32:02.888  [INFO]  Opening RFCOMM SPP
+2026-06-30 07:32:02.893  [INFO]  Bond state: BONDED
+2026-06-30 07:32:03.706  [INFO]  RFCOMM socket open
+2026-06-30 07:32:03.707  [TX]  init> ATZ
+2026-06-30 07:32:04.695  [RX]  init< ELM327 v2.2
+2026-06-30 07:32:04.697  [TX]  init> ATE0
+2026-06-30 07:32:04.721  [RX]  init< ATE0OK
+2026-06-30 07:32:04.764  [TX]  init> ATL0
+2026-06-30 07:32:04.787  [RX]  init< OK
+2026-06-30 07:32:04.830  [TX]  init> ATH0
+2026-06-30 07:32:04.874  [RX]  init< OK
+2026-06-30 07:32:04.918  [TX]  init> ATCAF1
+2026-06-30 07:32:04.984  [RX]  init< OK
+2026-06-30 07:32:05.027  [TX]  init> ATST 64
+2026-06-30 07:32:05.112  [RX]  init< OK
+2026-06-30 07:32:05.155  [TX]  init> ATAT2
+2026-06-30 07:32:05.241  [RX]  init< OK
+2026-06-30 07:32:05.284  [TX]  init> ATSP0
+2026-06-30 07:32:05.349  [RX]  init< OK
+2026-06-30 07:32:05.351  [TX]  init> 0100
+2026-06-30 07:32:10.095  [RX]  init< SEARCHING...41 00 80 18 00 11 41 00 BF 9F A8 91
+2026-06-30 07:32:10.601  [INFO]  Probe ATSP0 -> no-data
+2026-06-30 07:32:10.604  [INFO]  ATSP0 auto-detect did not respond to 0100; forcing ATSP6 (CAN 11/500) for BMW E65
+2026-06-30 07:32:10.607  [TX]  init> ATSP6
+2026-06-30 07:32:10.712  [RX]  init< OK
+2026-06-30 07:32:10.714  [TX]  init> 0100
+2026-06-30 07:32:10.819  [RX]  init< CAN ERROR
+2026-06-30 07:32:11.323  [INFO]  Probe ATSP6 -> no-data
+2026-06-30 07:32:11.325  [INFO]  ATSP6 also failed; trying ATSP7 (CAN 29/500)
+2026-06-30 07:32:11.327  [TX]  init> ATSP7
+2026-06-30 07:32:11.433  [RX]  init< OK
+2026-06-30 07:32:11.435  [TX]  init> 0100
+2026-06-30 07:32:11.563  [RX]  init< CAN ERROR
+2026-06-30 07:32:12.067  [INFO]  Probe ATSP7 -> no-data
+2026-06-30 07:32:12.069  [ERROR]  Protocol detection failed on ATSP0/6/7 — polling will likely return NO DATA
+2026-06-30 07:32:12.071  [TX]  init> ATDPN
+2026-06-30 07:32:12.178  [RX]  init< 7
+2026-06-30 07:32:12.180  [INFO]  ELM327 init complete
+2026-06-30 07:32:12.182  [INFO]  Poll loop start (interval=500ms, 11 cmds)
+2026-06-30 07:32:12.183  [INFO]  Connected to DC:0D:30:E2:51:FD
+2026-06-30 07:32:12.343  [ERROR]  Poll FAIL: RPM — ELM: CAN ERROR
+2026-06-30 07:32:12.432  [ERROR]  Poll FAIL: Vehicle Speed — ELM: CAN ERROR
+2026-06-30 07:32:12.541  [ERROR]  Poll FAIL: Coolant Temp — ELM: CAN ERROR
+2026-06-30 07:32:12.671  [ERROR]  Poll FAIL: Oil Temp — ELM: CAN ERROR
+2026-06-30 07:32:12.781  [ERROR]  Poll FAIL: Throttle Position — ELM: CAN ERROR
+2026-06-30 07:32:12.879  [ERROR]  Poll FAIL: Engine Load — ELM: CAN ERROR
+2026-06-30 07:32:12.951  [INFO]  Poll OK: Battery Voltage=13.8 V
+2026-06-30 07:32:13.066  [ERROR]  Poll FAIL: Fuel Level — ELM: CAN ERROR
+2026-06-30 07:32:13.151  [ERROR]  Poll FAIL: Mass Air Flow — ELM: CAN ERROR
+2026-06-30 07:32:13.259  [ERROR]  Poll FAIL: Intake Air Temp — ELM: CAN ERROR
+2026-06-30 07:32:13.355  [ERROR]  Poll FAIL: MIL Status — ELM: CAN ERROR
+2026-06-30 07:32:17.096  [INFO]  Poll group -> GROUP_DASHBOARD (interval=500ms, 11 cmds)
+2026-06-30 07:32:17.099  [ERROR]  Poll FAIL: Battery Voltage — Interrupted
+2026-06-30 07:32:17.708  [INFO]  Poll OK: Battery Voltage=13.8 V
+2026-06-30 07:32:23.514  [TX]  03
+2026-06-30 07:32:23.538  [RX]  STOPPED
+2026-06-30 07:32:23.542  [INFO]  Poll loop start (interval=500ms, 11 cmds)
+2026-06-30 07:32:23.543  [ERROR]  Poll FAIL: RPM — Interrupted
+2026-06-30 07:32:23.544  [INFO]  Module read: DSC (resp 629)
+2026-06-30 07:32:23.546  [TX]  AT> ATCAF1
+2026-06-30 07:32:23.641  [TX]  AT> ATSH 6F1
+2026-06-30 07:32:23.660  [TX]  AT> ATCRA 629
+2026-06-30 07:32:23.710  [TX]  AT> ATFCSH 6F1
+2026-06-30 07:32:23.729  [TX]  AT> ATFCSD 30 00 00
+2026-06-30 07:32:23.856  [TX]  AT> ATFCSM 1
+2026-06-30 07:32:23.875  [TX]  TX> 29 19 02 FF
+2026-06-30 07:32:23.971  [RX]  module< CAN ERROR
+2026-06-30 07:32:23.973  [TX]  AT> ATCRA
+2026-06-30 07:32:24.022  [TX]  AT> ATAR
+2026-06-30 07:32:24.094  [INFO]  Poll loop start (interval=500ms, 11 cmds)
+2026-06-30 07:32:24.096  [INFO]  Module read: EGS (resp 618)
+2026-06-30 07:32:24.098  [TX]  AT> ATCAF1
+2026-06-30 07:32:24.117  [TX]  AT> ATSH 6F1
+2026-06-30 07:32:24.137  [TX]  AT> ATCRA 618
+2026-06-30 07:32:24.156  [TX]  AT> ATFCSH 6F1
+2026-06-30 07:32:24.220  [TX]  AT> ATFCSD 30 00 00
+2026-06-30 07:32:24.254  [TX]  AT> ATFCSM 1
+2026-06-30 07:32:24.273  [TX]  TX> 18 19 02 FF
+2026-06-30 07:32:24.386  [RX]  module< CAN ERROR
+2026-06-30 07:32:24.388  [TX]  AT> ATCRA
+2026-06-30 07:32:24.406  [TX]  AT> ATAR
+2026-06-30 07:32:24.488  [INFO]  Poll loop start (interval=500ms, 11 cmds)
+2026-06-30 07:32:24.599  [ERROR]  Poll FAIL: RPM — ELM: CAN ERROR
+2026-06-30 07:32:24.698  [ERROR]  Poll FAIL: Vehicle Speed — ELM: CAN ERROR
+2026-06-30 07:32:24.796  [ERROR]  Poll FAIL: Coolant Temp — ELM: CAN ERROR
+2026-06-30 07:32:24.947  [ERROR]  Poll FAIL: Oil Temp — ELM: CAN ERROR
+2026-06-30 07:32:25.035  [ERROR]  Poll FAIL: Throttle Position — ELM: CAN ERROR
+2026-06-30 07:32:25.133  [ERROR]  Poll FAIL: Engine Load — ELM: CAN ERROR
+2026-06-30 07:32:25.160  [INFO]  Poll OK: Battery Voltage=13.8 V
+2026-06-30 07:32:25.342  [ERROR]  Poll FAIL: Fuel Level — ELM: CAN ERROR
+2026-06-30 07:32:25.430  [ERROR]  Poll FAIL: Mass Air Flow — ELM: CAN ERROR
+2026-06-30 07:32:25.530  [ERROR]  Poll FAIL: Intake Air Temp — ELM: CAN ERROR
+2026-06-30 07:32:25.703  [ERROR]  Poll FAIL: MIL Status — ELM: CAN ERROR
+2026-06-30 07:32:41.139  [TX]  0902
+2026-06-30 07:32:41.388  [RX]  CAN ERROR
+2026-06-30 07:32:41.392  [INFO]  Poll loop start (interval=500ms, 11 cmds)
+2026-06-30 07:32:41.404  [ERROR]  Poll FAIL: RPM — ELM: CAN ERROR
+2026-06-30 07:32:41.502  [ERROR]  Poll FAIL: Vehicle Speed — ELM: STOPPED
+2026-06-30 07:32:41.601  [ERROR]  Poll FAIL: Coolant Temp — ELM: CAN ERROR
+2026-06-30 07:32:41.710  [ERROR]  Poll FAIL: Oil Temp — ELM: CAN ERROR
+2026-06-30 07:32:41.810  [ERROR]  Poll FAIL: Throttle Position — ELM: CAN ERROR
+2026-06-30 07:32:41.918  [ERROR]  Poll FAIL: Engine Load — ELM: CAN ERROR
+2026-06-30 07:32:41.964  [INFO]  Poll OK: Battery Voltage=13.8 V
+2026-06-30 07:32:42.083  [ERROR]  Poll FAIL: Fuel Level — ELM: CAN ERROR
+2026-06-30 07:32:42.213  [ERROR]  Poll FAIL: Mass Air Flow — ELM: CAN ERROR
+2026-06-30 07:32:42.332  [ERROR]  Poll FAIL: Intake Air Temp — ELM: CAN ERROR
+2026-06-30 07:32:42.463  [ERROR]  Poll FAIL: MIL Status — ELM: CAN ERROR
+2026-06-30 07:33:00.708  [INFO]  Poll group -> GROUP_DASHBOARD (interval=500ms, 11 cmds)
+2026-06-30 07:33:00.711  [ERROR]  Poll FAIL: Battery Voltage — Interrupted
+2026-06-30 07:33:01.338  [INFO]  Poll OK: Battery Voltage=13.9 V
+2026-06-30 07:33:24.541  [ERROR]  Poll FAIL: Battery Voltage — Interrupted
+2026-06-30 07:33:24.611  [INFO]  Poll loop start (interval=500ms, 11 cmds)
+2026-06-30 07:33:24.657  [ERROR]  Poll FAIL: RPM — ELM: STOPPED
+2026-06-30 07:33:24.765  [ERROR]  Poll FAIL: Vehicle Speed — ELM: CAN ERROR
+2026-06-30 07:33:24.851  [ERROR]  Poll FAIL: Coolant Temp — ELM: CAN ERROR
+2026-06-30 07:33:24.951  [ERROR]  Poll FAIL: Oil Temp — ELM: CAN ERROR
+2026-06-30 07:33:25.040  [ERROR]  Poll FAIL: Throttle Position — ELM: CAN ERROR
+2026-06-30 07:33:25.150  [ERROR]  Poll FAIL: Engine Load — ELM: CAN ERROR
+2026-06-30 07:33:25.220  [INFO]  Poll OK: Battery Voltage=13.8 V
+2026-06-30 07:33:25.318  [ERROR]  Poll FAIL: Fuel Level — ELM: CAN ERROR
+2026-06-30 07:33:25.430  [ERROR]  Poll FAIL: Mass Air Flow — ELM: CAN ERROR
+2026-06-30 07:33:25.451  [ERROR]  Poll FAIL: Intake Air Temp — Interrupted
+2026-06-30 07:33:25.540  [INFO]  Poll loop start (interval=500ms, 11 cmds)
+2026-06-30 07:33:25.659  [ERROR]  Poll FAIL: RPM — ELM: CAN ERROR
+2026-06-30 07:33:25.758  [ERROR]  Poll FAIL: Vehicle Speed — ELM: CAN ERROR
+2026-06-30 07:33:25.868  [ERROR]  Poll FAIL: Coolant Temp — ELM: CAN ERROR
+2026-06-30 07:33:25.967  [ERROR]  Poll FAIL: Oil Temp — ELM: CAN ERROR
+2026-06-30 07:33:26.087  [ERROR]  Poll FAIL: Throttle Position — ELM: CAN ERROR
+2026-06-30 07:33:26.186  [ERROR]  Poll FAIL: Engine Load — ELM: CAN ERROR
+2026-06-30 07:33:26.212  [INFO]  Poll OK: Battery Voltage=13.8 V
+2026-06-30 07:33:26.301  [ERROR]  Poll FAIL: Fuel Level — ELM: CAN ERROR
+2026-06-30 07:33:26.409  [ERROR]  Poll FAIL: Mass Air Flow — ELM: CAN ERROR
+2026-06-30 07:33:26.529  [ERROR]  Poll FAIL: Intake Air Temp — ELM: CAN ERROR
+2026-06-30 07:33:26.618  [ERROR]  Poll FAIL: MIL Status — ELM: CAN ERROR
+2026-06-30 07:33:31.355  [TX]  AT> ATCAF1
+2026-06-30 07:33:31.389  [TX]  AT> ATSH 6F1
+2026-06-30 07:33:31.406  [TX]  AT> ATCRA 612
+2026-06-30 07:33:31.471  [TX]  AT> ATFCSH 6F1
+2026-06-30 07:33:31.505  [TX]  AT> ATFCSD 30 00 00
+2026-06-30 07:33:31.525  [TX]  AT> ATFCSM 1
+2026-06-30 07:33:31.607  [TX]  TX> 12 22 A0 01
+2026-06-30 07:33:31.735  [TX]  AT> ATCRA
+2026-06-30 07:33:31.769  [TX]  AT> ATAR
+2026-06-30 07:33:31.806  [INFO]  Poll loop start (interval=500ms, 11 cmds)
+2026-06-30 07:33:31.903  [ERROR]  Poll FAIL: RPM — ELM: CAN ERROR
+2026-06-30 07:33:32.001  [ERROR]  Poll FAIL: Vehicle Speed — ELM: CAN ERROR
+2026-06-30 07:33:32.079  [ERROR]  Poll FAIL: Coolant Temp — ELM: CAN ERROR
+2026-06-30 07:33:32.167  [ERROR]  Poll FAIL: Oil Temp — ELM: CAN ERROR
+2026-06-30 07:33:32.255  [ERROR]  Poll FAIL: Throttle Position — ELM: CAN ERROR
+2026-06-30 07:33:32.353  [ERROR]  Poll FAIL: Engine Load — ELM: CAN ERROR
+2026-06-30 07:33:32.433  [INFO]  Poll OK: Battery Voltage=13.9 V
+2026-06-30 07:33:32.563  [ERROR]  Poll FAIL: Fuel Level — ELM: CAN ERROR
+2026-06-30 07:33:32.662  [ERROR]  Poll FAIL: Mass Air Flow — ELM: CAN ERROR
+2026-06-30 07:33:32.749  [ERROR]  Poll FAIL: Intake Air Temp — ELM: CAN ERROR
+2026-06-30 07:33:32.826  [ERROR]  Poll FAIL: MIL Status — ELM: CAN ERROR
+2026-06-30 07:33:44.427  [INFO]  Poll group -> GROUP_DASHBOARD (interval=500ms, 11 cmds)
+2026-06-30 07:33:44.432  [ERROR]  Poll FAIL: Battery Voltage — Interrupted
+2026-06-30 07:33:44.998  [INFO]  Poll OK: Battery Voltage=13.8 V
+2026-06-30 07:38:44.600  [INFO]  Auto-reconnect attempt #1
+2026-06-30 07:38:44.611  [INFO]  Auto-connecting to DC:0D:30:E2:51:FD
+2026-06-30 07:38:44.623  [INFO]  Device type=CLASSIC name=vLinker BM-Android
+2026-06-30 07:38:44.625  [INFO]  Opening RFCOMM SPP
+2026-06-30 07:38:44.627  [INFO]  Bond state: BONDED

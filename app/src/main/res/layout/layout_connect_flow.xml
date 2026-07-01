@@ -1,0 +1,313 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Guided end-to-end connect flow: BT → Adapter → ELM → ECU.
+    Each row shows a dot (pending/active/done/fail) and copy. The primary
+    button at the bottom retitles based on which step we're on ("Enable
+    Bluetooth", "Grant permission", "Choose adapter", "Retry", "Done").
+    A "Reset pairing" action is one tap away when things get stuck.
+-->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_gradient_hero"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Connect to your car"
+            android:textColor="@color/textPrimary"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.02" />
+
+        <TextView
+            android:id="@+id/tvFlowSubtitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Plug the ELM327 adapter into the OBD port and turn the ignition to position II."
+            android:textColor="@color/textSecondary"
+            android:textSize="13sp"
+            android:lineSpacingExtra="3dp"
+            android:paddingTop="6dp"
+            android:paddingBottom="24dp" />
+
+        <!-- ============ Step 1: Bluetooth ============ -->
+        <LinearLayout
+            android:id="@+id/step1Row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp">
+
+            <FrameLayout
+                android:layout_width="36dp"
+                android:layout_height="36dp">
+                <View
+                    android:id="@+id/step1Dot"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/step_dot_pending" />
+                <TextView
+                    android:id="@+id/step1Icon"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="1"
+                    android:textColor="#EAEAEA"
+                    android:textStyle="bold"
+                    android:textSize="14sp" />
+            </FrameLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="14dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Bluetooth"
+                    android:textColor="@color/textPrimary"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/step1Detail"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Checking…"
+                    android:textColor="@color/textSecondary"
+                    android:textSize="12sp"
+                    android:paddingTop="2dp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- ============ Step 2: Adapter ============ -->
+        <LinearLayout
+            android:id="@+id/step2Row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp">
+
+            <FrameLayout
+                android:layout_width="36dp"
+                android:layout_height="36dp">
+                <View
+                    android:id="@+id/step2Dot"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/step_dot_pending" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="2"
+                    android:textColor="#EAEAEA"
+                    android:textStyle="bold"
+                    android:textSize="14sp" />
+            </FrameLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="14dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="OBD adapter"
+                    android:textColor="@color/textPrimary"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/step2Detail"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Waiting"
+                    android:textColor="@color/textSecondary"
+                    android:textSize="12sp"
+                    android:paddingTop="2dp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- ============ Step 3: ELM handshake ============ -->
+        <LinearLayout
+            android:id="@+id/step3Row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp">
+
+            <FrameLayout
+                android:layout_width="36dp"
+                android:layout_height="36dp">
+                <View
+                    android:id="@+id/step3Dot"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/step_dot_pending" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="3"
+                    android:textColor="#EAEAEA"
+                    android:textStyle="bold"
+                    android:textSize="14sp" />
+            </FrameLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="14dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="ELM327 handshake"
+                    android:textColor="@color/textPrimary"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/step3Detail"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Waiting"
+                    android:textColor="@color/textSecondary"
+                    android:textSize="12sp"
+                    android:paddingTop="2dp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- ============ Step 4: Vehicle ECU ============ -->
+        <LinearLayout
+            android:id="@+id/step4Row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp">
+
+            <FrameLayout
+                android:layout_width="36dp"
+                android:layout_height="36dp">
+                <View
+                    android:id="@+id/step4Dot"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/step_dot_pending" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="4"
+                    android:textColor="#EAEAEA"
+                    android:textStyle="bold"
+                    android:textSize="14sp" />
+            </FrameLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="14dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Vehicle ECU"
+                    android:textColor="@color/textPrimary"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/step4Detail"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Waiting"
+                    android:textColor="@color/textSecondary"
+                    android:textSize="12sp"
+                    android:paddingTop="2dp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Error banner (shown when a step fails, hidden otherwise) -->
+        <TextView
+            android:id="@+id/tvFlowError"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/card_bg"
+            android:padding="12dp"
+            android:layout_marginTop="16dp"
+            android:textColor="#FFAB91"
+            android:textSize="12sp"
+            android:lineSpacingExtra="3dp"
+            android:visibility="gone" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:minHeight="20dp" />
+
+        <!-- Primary action — retitles based on current state -->
+        <Button
+            android:id="@+id/btnFlowPrimary"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/btn_pill_teal"
+            android:text="START"
+            android:textColor="#000000"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.15"
+            android:stateListAnimator="@null" />
+
+        <!-- Secondary link — "Reset Bluetooth pairing" when stuck -->
+        <TextView
+            android:id="@+id/btnFlowReset"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:paddingTop="14dp"
+            android:paddingBottom="6dp"
+            android:text="Adapter stuck? Reset Bluetooth pairing"
+            android:textColor="@color/bmwBlau"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/btnFlowCancel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:paddingTop="10dp"
+            android:text="Cancel"
+            android:textColor="@color/textHint"
+            android:textSize="12sp" />
+    </LinearLayout>
+</ScrollView>

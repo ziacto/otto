@@ -1,0 +1,107 @@
+{
+  "version": 1,
+  "vehicle": "BMW E65 730li 2007 GCC spec",
+  "notes": "Step-by-step diagnostic procedures for common E65 problems. Use these as systematic troubleshooting guides.",
+  "procedures": [
+    {
+      "id": "diag_no_start",
+      "title": "No start / crank but no fire",
+      "category": "Engine",
+      "steps": [
+        { "step": 1, "action": "Check battery voltage with the OBD app. Must be 11.5V+ for crank, 12.4V at rest.", "if_fail": "Charge or replace battery. Register new battery if replaced." },
+        { "step": 2, "action": "Listen for fuel pump prime when key is turned to position II. 2-3 second whine from rear.", "if_fail": "Check fuel pump fuse F109 (engine bay E-box). Then fuel pump relay. Then pump itself." },
+        { "step": 3, "action": "Read DTCs via OBD app. Look for P0335 (crank sensor), P0606 (DME fault), or fuel-pressure codes.", "if_fail": "Address codes before continuing." },
+        { "step": 4, "action": "Try spare key fob if you have one. E65 has known CAS module receiver issues.", "if_fail": "ELV (steering lock) failure is common — needs ISTA diagnosis." },
+        { "step": 5, "action": "If cranks but no spark — pull a coil and visually check spark on a grounded plug.", "if_fail": "Could be timing chain skip — check P0016/P0017 codes." }
+      ]
+    },
+    {
+      "id": "diag_misfire",
+      "title": "Misfire / rough running",
+      "category": "Engine",
+      "steps": [
+        { "step": 1, "action": "Read DTCs. Look for P0301-P0306 (specific cylinder) or P0300 (random).", "if_fail": "" },
+        { "step": 2, "action": "If specific cylinder code: swap that coil with another cylinder, clear codes, drive 5 min.", "if_fail": "If misfire follows the coil to new cylinder = coil bad. Replace." },
+        { "step": 3, "action": "If misfire stays on original cylinder after coil swap = spark plug or injector or compression issue.", "if_fail": "Replace plug first (€10). Then injector swap test." },
+        { "step": 4, "action": "If P0300 random: check valve cover gasket for oil in plug wells.", "if_fail": "Replace valve cover gasket — universal N52 issue at 100k km." },
+        { "step": 5, "action": "Check fuel pressure (live data screen). Should be 3.5-4.0 bar at idle.", "if_fail": "Low fuel pressure — check pump and filter." },
+        { "step": 6, "action": "Look at fuel trims (live data). LTFT > +15% = lean condition (vacuum leak).", "if_fail": "Smoke test intake for vacuum leaks — CCV is the prime suspect." }
+      ]
+    },
+    {
+      "id": "diag_overheat",
+      "title": "Overheating / coolant warning",
+      "category": "Cooling",
+      "steps": [
+        { "step": 1, "action": "Park immediately if temp gauge in red. Engine damage starts within seconds at 120°C+.", "if_fail": "" },
+        { "step": 2, "action": "Wait 30 min minimum before opening expansion tank cap.", "if_fail": "Risk of severe burns from pressurized steam." },
+        { "step": 3, "action": "Check coolant level when cold. Top up with G48 blue ONLY if needed.", "if_fail": "Coolant low without obvious leak = head gasket suspect." },
+        { "step": 4, "action": "Inspect expansion tank for cracks (very common E65).", "if_fail": "Replace tank €80." },
+        { "step": 5, "action": "Inspect under car for puddles. Front = radiator/hoses. Middle = water pump.", "if_fail": "Pinpoint leak source." },
+        { "step": 6, "action": "Open cap (when cold), start engine, watch coolant in tank. Should circulate after thermostat opens (~5 min).", "if_fail": "No flow = electric water pump dead. Standard 100-120k km failure." },
+        { "step": 7, "action": "Check radiator fan operation when A/C is on or temp climbs.", "if_fail": "Fan not running = fan motor or controller fault. €400+ for new fan." }
+      ]
+    },
+    {
+      "id": "diag_audio_dead",
+      "title": "No sound from speakers",
+      "category": "Audio",
+      "steps": [
+        { "step": 1, "action": "Check iDrive → Settings → Tone → Balance and Fader. Make sure both centred.", "if_fail": "Pull settings to default." },
+        { "step": 2, "action": "Check fuse F53 in boot fuse box (30A HiFi amplifier).", "if_fail": "If blown, replace €1. Test radio." },
+        { "step": 3, "action": "Read battery voltage with engine running. Must be 13.8-14.4V.", "if_fail": "Weak alternator can starve amp." },
+        { "step": 4, "action": "Check for one-speaker-only working — usually driver-left. That's the CCC backup amp; main DSP amp dead.", "if_fail": "Main amp needs rebuild. See fault 'logic7_amp_dead' entry." },
+        { "step": 5, "action": "Pull LEFT boot trim (Logic 7 amp lives in left rear corner per BMW Training). Locate amp, check connectors firmly seated.", "if_fail": "Loose connector = common easy fix." },
+        { "step": 6, "action": "Look at amp for water damage signs (corrosion, white residue).", "if_fail": "Water-killed amp — replace, find boot seal leak source." }
+      ]
+    },
+    {
+      "id": "diag_check_engine",
+      "title": "Check engine light came on",
+      "category": "Engine",
+      "steps": [
+        { "step": 1, "action": "Read DTCs via OBD app's Fault Codes screen.", "if_fail": "" },
+        { "step": 2, "action": "Note ALL codes including pending (Mode 07). Multiple related codes point to root cause.", "if_fail": "" },
+        { "step": 3, "action": "Tap each code in the app to read description and DIY rating.", "if_fail": "" },
+        { "step": 4, "action": "Check Freeze Frame data — engine conditions when fault was set.", "if_fail": "Helps diagnose intermittent faults." },
+        { "step": 5, "action": "Common culprits on N52: VANOS solenoid, CCV/oil separator, valve cover gasket leak.", "if_fail": "Tackle highest-severity DTC first." },
+        { "step": 6, "action": "Clear codes after repair. If they return within 50km — repair not complete.", "if_fail": "Re-investigate." }
+      ]
+    },
+    {
+      "id": "diag_battery_dies",
+      "title": "Battery dies overnight or after short parking",
+      "category": "Electrical",
+      "steps": [
+        { "step": 1, "action": "Check current draw with multimeter on negative terminal. Should be < 50mA after 30 min.", "if_fail": "" },
+        { "step": 2, "action": "If high parasitic draw, pull fuses one at a time and watch ammeter for drop.", "if_fail": "" },
+        { "step": 3, "action": "Common culprits on E65: CCC head unit not sleeping (HDD issue), comfort access antennas, trunk module.", "if_fail": "" },
+        { "step": 4, "action": "Check that all doors are FULLY closed (microswitches). One open switch = car never sleeps.", "if_fail": "Adjust or replace door switch." },
+        { "step": 5, "action": "Test battery load (specialist). If failing despite good charging = replace + register.", "if_fail": "Always register new battery via ISTA." }
+      ]
+    },
+    {
+      "id": "diag_dsc_abs_light",
+      "title": "DSC / ABS warning light on",
+      "category": "Brakes",
+      "steps": [
+        { "step": 1, "action": "Use full module scan in Fault Codes. Check DSC module specifically.", "if_fail": "" },
+        { "step": 2, "action": "Look for codes 5DF0-5DF3 (wheel speed sensors).", "if_fail": "Replace failed wheel speed sensor €60 + 1h labour." },
+        { "step": 3, "action": "Check 5E20/5E21 codes (yaw/lateral accel sensors internal to DSC).", "if_fail": "DSC unit replacement needed (specialist)." },
+        { "step": 4, "action": "Verify brake fluid level + condition.", "if_fail": "Low fluid = leak. Old fluid = service due." }
+      ]
+    },
+    {
+      "id": "diag_air_suspension",
+      "title": "Car sits low at rear / air suspension fault",
+      "category": "Suspension",
+      "steps": [
+        { "step": 1, "action": "Park overnight, check if rear has dropped significantly by morning.", "if_fail": "Slow leak somewhere." },
+        { "step": 2, "action": "Listen for compressor running when starting in the morning (catching up the leak).", "if_fail": "Compressor running > 1 min = leak in system." },
+        { "step": 3, "action": "Spray soapy water on air springs (above rear shock). Watch for bubbles.", "if_fail": "Air bag leak — replace bag €300 each side." },
+        { "step": 4, "action": "Check air lines for cracks near connectors.", "if_fail": "Line cracking common in GCC heat." },
+        { "step": 5, "action": "If no leak and compressor still constant = compressor brushes worn or pump failing.", "if_fail": "Replace compressor €400 OEM." }
+      ]
+    }
+  ]
+}

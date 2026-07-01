@@ -6,11 +6,31 @@
     <!-- Android 12+ runtime-permissions -->
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN"/>
-    <!-- Für ältere Geräte: Standort ggf. nötig für Scan -->
+    <!-- For older devices: Location permission may be required for Bluetooth scanning -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <!-- Foreground service for background OBD polling / reconnect -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+
+    <!-- INTERNET — used by the Share Report feature (FileProvider link) and by
+         future DTC lookup helpers. App stays fully usable offline. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+
+    <!-- USB-host — declared for future K+DCAN cable support. The cable presents
+         as a USB-serial device through an OTG adapter; with this feature we can
+         enumerate it and switch transport from BLE to USB automatically. -->
+    <uses-feature android:name="android.hardware.usb.host" android:required="false"/>
+
+    <!-- Bluetooth feature — required since the app is OBD over BT. Mark optional
+         so the APK can still be installed on USB-only tablets. -->
+    <uses-feature android:name="android.hardware.bluetooth" android:required="false"/>
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="false"/>
 
     <application
+        android:name=".ObdApp"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -21,13 +41,41 @@
         android:theme="@style/Theme.OBD">
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:theme="@style/Theme.Otto.Splash">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".PdfViewerActivity"
+            android:exported="false"
+            android:label="Manual"
+            android:parentActivityName=".MainActivity" />
+
+        <activity
+            android:name=".ImageViewerActivity"
+            android:exported="false"
+            android:label="Diagram"
+            android:parentActivityName=".MainActivity" />
+
+        <service
+            android:name=".ObdService"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice" />
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 
 </manifest>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="0dp"
+    android:layout_height="wrap_content"
+    android:layout_weight="1"
+    android:layout_marginStart="3dp"
+    android:layout_marginEnd="3dp"
+    android:orientation="vertical"
+    android:background="@drawable/tile_modern_bg"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/tileLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="—"
+        android:textColor="#80FFFFFF"
+        android:textSize="10sp"
+        android:letterSpacing="0.2" />
+
+    <TextView
+        android:id="@+id/tileValue"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="—"
+        android:textColor="@color/textPrimary"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:fontFeatureSettings="tnum"
+        android:paddingTop="4dp"
+        android:includeFontPadding="false" />
+
+    <TextView
+        android:id="@+id/tileUnit"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textColor="#60FFFFFF"
+        android:textSize="10sp" />
+</LinearLayout>

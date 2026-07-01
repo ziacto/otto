@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One row in the Live Data browser. Built by LiveDataBrowserController. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/card_bg"
+    android:padding="12dp"
+    android:layout_marginBottom="6dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/rowSensorName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Coolant Temp"
+            android:textColor="@color/textPrimary"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/rowSensorValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="—"
+            android:textColor="@color/textPrimary"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:fontFeatureSettings="tnum" />
+
+        <TextView
+            android:id="@+id/rowSensorUnit"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="°C"
+            android:textColor="@color/textSecondary"
+            android:textSize="12sp"
+            android:paddingStart="4dp" />
+
+        <TextView
+            android:id="@+id/rowSensorStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="20dp"
+            android:gravity="center_vertical"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:layout_marginStart="8dp"
+            android:text="OK"
+            android:textColor="#FFFFFF"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:background="@drawable/status_pill_ok" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/rowSensorRange"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Normal: 80–105 °C"
+        android:textColor="@color/textSecondary"
+        android:textSize="10sp"
+        android:paddingTop="2dp" />
+
+    <TextView
+        android:id="@+id/rowSensorDescription"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textColor="@color/textPrimary"
+        android:textSize="11sp"
+        android:paddingTop="6dp"
+        android:lineSpacingExtra="2dp"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/rowSensorBmwNote"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textColor="@color/bmwBlau"
+        android:textSize="11sp"
+        android:textStyle="italic"
+        android:paddingTop="4dp"
+        android:lineSpacingExtra="2dp"
+        android:visibility="gone" />
+</LinearLayout>

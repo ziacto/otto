@@ -1,0 +1,175 @@
+{
+  "version": 1,
+  "vehicle": "BMW E65/E66 730Li 2007 GCC spec",
+  "source": "Synthesised from BMW Service Training (Aftersales) documents: 'E65 Audio System', 'Central Body Electronics', '7 Series Bus Charts E65', 'E65 Rear Entertainment', and 'E65/E66 Model Redesign Participant's Manual' (October 2004).",
+  "notes": "Reference sheet on how each E65 subsystem is wired and which bus it uses. Use this to know what your ELM327 can reach vs what needs ISTA + K-DCAN cable.",
+  "topics": [
+    {
+      "id": "engine_codes",
+      "title": "Engine codes by model year",
+      "summary": "Your 2007 730Li is post-'Model Redesign' (MU), built after November 2004 facelift. Engine is N52.",
+      "details": [
+        "E65 730i (pre-MU, 2002-2004) — M54 engine, 170 kW / 231 bhp / 300 Nm",
+        "E65MU 730i / 730Li (post-MU, 11/2004+) — N52 engine, 190 kW / 258 bhp / 300 Nm  <-- YOUR CAR",
+        "E65 735i (pre-MU) — N62, 200 kW / 272 bhp / 360 Nm",
+        "E65MU 740i / 740Li (post-MU) — N62TU, 225 kW / 306 bhp / 390 Nm",
+        "E65 745i / 745Li (pre-MU) — N62, 245 kW / 333 bhp / 450 Nm",
+        "E65MU 750i / 750Li (post-MU) — N62TU, 270 kW / 367 bhp",
+        "E65 760i / 760Li — N73 V12, 327 kW / 445 bhp",
+        "GCC builds: typically 730Li and 750Li dominate. Long-wheelbase (Li) suffix common."
+      ]
+    },
+    {
+      "id": "audio_architecture",
+      "title": "Audio system architecture",
+      "summary": "E65 audio is built around the ASK (Audio System Controller) acting as MOST bus network master. Two variants: Basic Hi-Fi (180W, 10 speakers) or LOGIC 7 (420W, 13 speakers, SA 677).",
+      "details": [
+        "ASK = Audio System Controller — central audio router AND MOST bus network master. Handles all audio signals + warning gongs + PDC beeps.",
+        "AVT = Antenna Tuner with Diversity. Located in REAR LEFT C-pillar (not in head unit). Connects via MOST. No coaxial cable to head unit.",
+        "Basic Hi-Fi amp — 180W total, 40W/channel, drives sub-woofers only (mid/tweeter run direct from ASK). NO DIAGNOSTIC CAPABILITY — invisible to ISTA. Location: LEFT REAR corner of trunk.",
+        "LOGIC 7 amp (SA 677) — 420W total, 40W mid / 70W woofer. Full MOST connection. Full diagnostic capability via ISTA. Location: LEFT REAR corner of trunk. 7-band EQ + surround sound + frequency-dependent delay per speaker.",
+        "Speakers Basic Hi-Fi (10 total): 100mm mid + 44mm tweeter each front door, 2x 210mm sub under driver+passenger seats, 2x 100mm mid + 2x 44mm tweeter in rear shelf.",
+        "Speakers LOGIC 7 (13 total): adds center channel mid in dashboard + mid-range in rear doors.",
+        "CD changer: 6-disc Alpine unit, passenger-side dashboard, behind decorative strip. MOST-connected.",
+        "All audio (radio, CD, nav voice, telephone, gongs, PDC) is digital 44.1 kHz on MOST bus."
+      ]
+    },
+    {
+      "id": "bus_topology",
+      "title": "Bus topology — what your ELM327 can reach",
+      "summary": "E65 uses 5+ separate buses. Your ELM327 only speaks D-CAN. Everything else needs a K+DCAN cable or BMW ICOM.",
+      "details": [
+        "D-CAN (Diagnostic CAN, 500 kbps) — OBD pins 6/14. Reaches: DME (N52 engine), DSC (stability/ABS), EGS (ZF 6HP transmission), Airbag. YOUR APP REACHES THESE.",
+        "K-CAN P (Comfort Periphery) — door modules (SMFA seat, FH window, ZV lock), TMFAT door switches. NOT reachable from OBD with ELM327.",
+        "K-CAN S (Comfort System) — CAS (central access), JBE (junction box), light control, KOMBI cluster, IHKA HVAC. NOT reachable.",
+        "PT-CAN (Powertrain CAN) — sensor pre-processing on engine. Bridged to D-CAN via DME — most useful signals appear on D-CAN.",
+        "MOST (fiber optic, 25 Mbps) — audio + video ring. CCC head unit, Logic 7 amp, CD changer, antenna tuner, rear entertainment, TV tuner. NOT reachable from OBD.",
+        "byteflight (later: FlexRay) — airbag satellites + crash sensors only. Not for diagnostics.",
+        "Gateway: ZGM (Zentral-Gateway-Modul) bridges these buses for inter-module messages BUT does NOT forward UDS diagnostic requests between buses on E65 — that's F-series only.",
+        "Practical: with ELM327 you can read engine, transmission, brakes, airbag. You CANNOT read audio, comfort, lights, seats, body modules."
+      ]
+    },
+    {
+      "id": "module_glossary",
+      "title": "Module abbreviation glossary",
+      "summary": "BMW uses German abbreviations everywhere. Here's what they mean.",
+      "details": [
+        "ASK — Audio System Controller (MOST master, audio router)",
+        "AVT — Antenna Tuner (rear left C-pillar)",
+        "CAS — Car Access System (immobilizer, central locking master, key recognition)",
+        "CCC — Car Communication Computer (iDrive head unit with navigation)",
+        "DME — Digital Motor Electronics (engine ECU — your N52 ECU)",
+        "DSC — Dynamic Stability Control (ABS + stability + traction)",
+        "EGS — Electronic Transmission Control (transmission ECU — ZF 6HP19Z for 730Li)",
+        "EKP — Electric Fuel Pump control",
+        "ELV — Electronic Steering Lock",
+        "FBD — Radio Remote-Control Receiver",
+        "FH — Window Lift Control",
+        "FRM — Footwell Module (lights, indicators, K-CAN gateway)",
+        "FZV — Remote Central Locking",
+        "GA6HP19Z — your ZF 6-speed gearbox (730Li specific)",
+        "GS19 — synonym for the 6HP19 trans control unit",
+        "GWS — Gear selector electronics (shifter)",
+        "HKL — Powered Trunk Lid",
+        "IBS — Intelligent Battery Sensor (battery state-of-charge, on negative terminal)",
+        "IHKA — Integrated Heating / Air Conditioning (climate control / HVAC)",
+        "JBE — Junction Box Electronics (fuse + relay + body gateway)",
+        "KOMBI — instrument cluster",
+        "PDC — Park Distance Control (parking sensors)",
+        "RDC — Tire Pressure Monitoring",
+        "SBSL — Side Indicator Light",
+        "SCA — Soft Close Automatic (door close motor)",
+        "SHD — Sunroof / Slide-Tilt Roof",
+        "SMBF — Passenger Seat Module (K-CAN)",
+        "SMFA — Driver Seat Module (K-CAN)",
+        "SZL — Steering Column Switch Cluster",
+        "TMFAT — Driver Door Module",
+        "TMBFT — Passenger Door Module",
+        "TOEHK — Trunk Lid Outside Pushbutton",
+        "TOEHKI — Trunk Lid Inside Pushbutton (in cabin)",
+        "ULF — Universal Cordless Phone Interface (Bluetooth/handset)",
+        "ZGM — Central Gateway Module (bridges D-CAN / K-CAN / MOST)",
+        "ZKE — Central Body Electronics",
+        "ZV — Central Locking"
+      ]
+    },
+    {
+      "id": "central_locking",
+      "title": "Central locking system",
+      "summary": "Locking control is in CAS (Car Access System); output ops distributed across multiple door modules over K-CAN P/S.",
+      "details": [
+        "CAS = master. Doors / boot / fuel flap controlled separately by their own modules over K-CAN.",
+        "Operating points: driver door lock cylinder, FBD remote, cabin lock button, trunk-inside button (TOEHKI), trunk-outside button (TOEHK), trunk-lid button (TOEHKK if HKL fitted), hotel switch in centre console.",
+        "Trunk lock cylinder is mechanical-emergency-only — no electrical signal.",
+        "Functions: Lock, Double-lock, Selective Unlock (driver only), Full Unlock, Soft-Close (optional).",
+        "Soft-close motors (SCA): one per door + trunk. Powered cinching to fully closed position.",
+        "Crash unlock and 'key-inserted' forced double-unlock are handled by CAS.",
+        "Anti-theft alarm communicates via K-CAN S.",
+        "Common faults: comfort access antenna failure in door handle, ELV (steering lock) module death, soft-close motor failure (lifecycle ~150k cycles)."
+      ]
+    },
+    {
+      "id": "rear_entertainment",
+      "title": "Rear entertainment system (SA option)",
+      "summary": "Optional rear-seat entertainment with two 6.5\" screens, rear DVD changer, rear armrest control, cordless headsets. All MOST-connected.",
+      "details": [
+        "6.5\" displays mounted behind front headrests (one driver-side, one passenger-side).",
+        "Video Module 5 Drive — TV tuner / video source switching.",
+        "DVD changer (separate from front audio CD changer).",
+        "Rear armrest control center (BZMF — Rear Centre Control Unit).",
+        "FCON — Rear Compartment Controller (rear compartment master).",
+        "SG FD — Rear Display Control Unit.",
+        "Cordless headset interface (IR or RF) so rear passengers don't disturb front.",
+        "All on MOST bus. NOT reachable via ELM327 — only ISTA via K-DCAN.",
+        "Common failure: cordless headset RF receiver, headphone hum from ground loop."
+      ]
+    },
+    {
+      "id": "power_windows",
+      "title": "Power windows architecture",
+      "summary": "Decentralised: each door has its own module (Driver Door Module, Passenger Door Module). K-CAN P communication.",
+      "details": [
+        "Each door module runs its own window motor and reads its own switch panel.",
+        "Driver door switches send command to passenger doors via K-CAN P to operate other windows.",
+        "Anti-pinch: motor current monitored — if obstacle detected, window reverses ~10cm.",
+        "Comfort closing (with remote): hold lock button → all windows close + sunroof closes + mirrors fold.",
+        "If a window doesn't work from main switch but works from local switch = K-CAN P comm fault. Door loom break in hinge boot is the usual cause."
+      ]
+    },
+    {
+      "id": "gcc_specifics",
+      "title": "GCC-spec differences (UAE / Saudi / Qatar / Kuwait / Bahrain / Oman)",
+      "summary": "Your 2007 730Li was built for Gulf Cooperation Council markets. Mechanically identical to Euro spec, but climate-tuned and equipment-loaded.",
+      "details": [
+        "ENGINE: Same N52B30 as Euro spec — no GCC-specific tuning. BUT GCC fuel was 95 RON minimum at the time; modern UAE Special 98 is fine.",
+        "TRANSMISSION: Same ZF GA6HP19Z — no GCC variant.",
+        "COOLING UPRATED: Larger radiator core, second auxiliary fan, larger A/C condenser, additional A/C expansion valve. Tuned for 50°C+ ambient.",
+        "A/C: Dual evaporator on Li models, rear A/C standard. Compressor cycles harder than Euro — first failure point in GCC.",
+        "BATTERY: AGM 90Ah standard (same as Euro), but 5-7 year life in GCC heat vs 8-10 in Europe.",
+        "PAINT/INTERIOR: Heat-reflective paint codes more common. Beige/cream interior dominant for sun reflection.",
+        "GLASS: Often factory privacy glass (rear), heat-reflective windscreen.",
+        "TYRES: 245/55R17 standard, 245/50R18 common. GCC heat = check pressure WARM (35 psi cold becomes 40 psi after highway).",
+        "EQUIPMENT BIAS: Comfort Access, Top Hi-Fi (Logic 7 SA 677), rear sun blinds, ventilated front seats, soft-close doors — almost always fitted.",
+        "OMITTED IN GCC: Heated steering wheel, heated washer jets, ski hatch (rare). Diesel variants not sold.",
+        "EMISSIONS: Euro 3/4 tune (lighter than late Euro 5/6). SAI (secondary air injection) present but operates less than cold climates.",
+        "SERVICE INTERVALS: Shorter than Euro. Oil at 8k km (not 10k). Brake fluid at 18 months (not 24). A/C service every 18 months.",
+        "RUST: Not really an issue in GCC dry climate — major advantage. Suspension and brake parts age slower than UK/EU cars.",
+        "WHAT YOU MIGHT SEE THAT EURO CARS DON'T: A/C compressor failure earlier, battery shorter life, rubber seals stiffer, but body intact."
+      ]
+    },
+    {
+      "id": "diagnostic_strategy",
+      "title": "What to do when your app cannot reach a module",
+      "summary": "ELM327 limitations and the K-DCAN workaround.",
+      "details": [
+        "If your app shows NO DATA for a fault you suspect, the module is probably on K-CAN or MOST.",
+        "Symptoms reachable via ELM327 (D-CAN): engine running issues, misfires, transmission fault, ABS/DSC fault, airbag warning.",
+        "Symptoms NOT reachable: audio dead, windows broken, lights, seats, sunroof, HVAC fault codes (live HVAC sensor data IS partly available via DME).",
+        "K-DCAN cable (~€30 eBay) gives you K-CAN access. Combined with INPA or ISTA-D software (Windows) you can read everything.",
+        "BMW ICOM Next adapter (~€300+) gives full MOST + K-CAN + D-CAN + FlexRay access, official ISTA support.",
+        "For a 2007 730Li, a K-DCAN cable + ISTA + Rheingold is usually enough for everything except MOST programming.",
+        "Your phone app's job: dashboard, fault codes from DME/DSC/EGS, live data, sensor browser. For body/comfort: K-DCAN + laptop."
+      ]
+    }
+  ]
+}

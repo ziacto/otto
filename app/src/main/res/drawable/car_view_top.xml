@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Top-down. Replace with brochure drawable named `car_view_top` to override. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="400dp"
+    android:viewportWidth="80"
+    android:viewportHeight="200">
+
+    <!-- Body outline -->
+    <path android:fillColor="#1E2A3A" android:strokeColor="#03DAC5" android:strokeWidth="0.6"
+        android:pathData="M12,18 Q40,8 68,18 L68,180 Q40,192 12,180 Z" />
+
+    <!-- Hood seam -->
+    <path android:strokeColor="#03DAC5" android:strokeWidth="0.4"
+        android:pathData="M18,30 L62,30" />
+
+    <!-- Windshield -->
+    <path android:fillColor="#0E0E1A" android:strokeColor="#03DAC5" android:strokeWidth="0.4"
+        android:pathData="M20,52 L60,52 L62,70 L18,70 Z" />
+
+    <!-- Roof -->
+    <path android:fillColor="#0E0E1A" android:strokeColor="#03DAC5" android:strokeWidth="0.4"
+        android:pathData="M18,72 L62,72 L62,128 L18,128 Z" />
+
+    <!-- Rear window -->
+    <path android:fillColor="#0E0E1A" android:strokeColor="#03DAC5" android:strokeWidth="0.4"
+        android:pathData="M18,130 L62,130 L60,148 L20,148 Z" />
+
+    <!-- Trunk seam -->
+    <path android:strokeColor="#03DAC5" android:strokeWidth="0.4"
+        android:pathData="M18,170 L62,170" />
+
+    <!-- Wheels -->
+    <path android:fillColor="#000000" android:pathData="M8,32 L16,32 L16,52 L8,52 Z" />
+    <path android:fillColor="#000000" android:pathData="M64,32 L72,32 L72,52 L64,52 Z" />
+    <path android:fillColor="#000000" android:pathData="M8,148 L16,148 L16,168 L8,168 Z" />
+    <path android:fillColor="#000000" android:pathData="M64,148 L72,148 L72,168 L64,168 Z" />
+</vector>

@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/darkBackground"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Debug Log"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="@color/accentColor"
+        android:paddingBottom="4dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="OBD TX/RX, init sequence, errors — last 500 events. Auto-refreshes."
+        android:textSize="12sp"
+        android:textColor="@color/secondaryTextColor"
+        android:paddingBottom="4dp" />
+
+    <TextView
+        android:id="@+id/tvLogFilePath"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textSize="10sp"
+        android:textColor="@color/secondaryTextColor"
+        android:fontFamily="monospace"
+        android:paddingBottom="4dp" />
+
+    <TextView
+        android:id="@+id/tvRawFilePath"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textSize="10sp"
+        android:textColor="@color/secondaryTextColor"
+        android:fontFamily="monospace"
+        android:paddingBottom="8dp" />
+
+    <androidx.appcompat.widget.SwitchCompat
+        android:id="@+id/swRawCapture"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Capture raw ELM327 traffic (hex) to obd-raw.log"
+        android:textSize="13sp"
+        android:textColor="@color/primaryTextColor"
+        android:paddingBottom="12dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingBottom="12dp">
+
+        <Button
+            android:id="@+id/btnRefreshLog"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="4dp"
+            android:text="Refresh"
+            android:backgroundTint="@color/accentColor"
+            android:textColor="#000000" />
+
+        <Button
+            android:id="@+id/btnShareLog"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp"
+            android:text="Share"
+            android:backgroundTint="#03DAC5"
+            android:textColor="#000000" />
+
+        <Button
+            android:id="@+id/btnClearLog"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:text="Clear"
+            android:backgroundTint="#F44336"
+            android:textColor="#FFFFFF" />
+    </LinearLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="#0E0E1A"
+        android:padding="8dp">
+
+        <TextView
+            android:id="@+id/tvLogContent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#C8E6C9"
+            android:textSize="11sp"
+            android:fontFamily="monospace"
+            android:text="" />
+    </ScrollView>
+
+</LinearLayout>

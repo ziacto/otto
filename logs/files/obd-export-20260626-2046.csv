@@ -1,0 +1,14 @@
+# BMW OBD export — Fri Jun 26 20:46:50 GMT+04:00 2026
+
+## trips
+id,vin,startedAt,endedAt,durationSec,peakSpeed_kmh,peakRpm,peakCoolant_c,distance_km,notes
+
+## pid_samples (last 30 days, key sensors)
+name,ts_epoch_ms,value
+Coolant Temp,1782486535208,0.0
+Battery Voltage,1782483322783,7.0
+Battery Voltage,1782492354738,13.9
+Battery Voltage,1782492360710,13.9
+RPM,1782492379225,0.0
+Vehicle Speed,1782483323267,0.0
+Vehicle Speed,1782484518600,0.0

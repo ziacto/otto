@@ -1,0 +1,449 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0E0E1A"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="14dp">
+
+        <!-- Header -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingBottom="10dp">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="BMW 730li"
+                    android:textSize="22sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFF"
+                    android:letterSpacing="0.05" />
+
+                <TextView
+                    android:id="@+id/tvDashStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="● Disconnected"
+                    android:textSize="12sp"
+                    android:textColor="#FF6E6E"
+                    android:paddingTop="2dp" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="LIVE"
+                android:textSize="11sp"
+                android:textColor="#03DAC5"
+                android:letterSpacing="0.3"
+                android:background="@drawable/card_bg_accent"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp" />
+        </LinearLayout>
+
+        <!-- Vehicle info card (model / engine / year / VIN) — populated by
+             DashboardController from VinDecoder once a VIN is known. Stays
+             visible with placeholder text before then. -->
+        <LinearLayout
+            android:id="@+id/vehicleInfoCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="@drawable/card_bg_accent"
+            android:padding="14dp"
+            android:layout_marginBottom="14dp">
+
+            <ImageView
+                android:layout_width="92dp"
+                android:layout_height="56dp"
+                android:src="@drawable/car_view_side"
+                android:scaleType="fitCenter"
+                android:layout_gravity="center_vertical" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="12dp"
+                android:orientation="vertical"
+                android:layout_gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/tvVehicleModel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="BMW 730li (E65)"
+                    android:textColor="@color/textPrimary"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvVehicleEngine"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="N52B30 inline-6 · 3.0L NA"
+                    android:textColor="@color/textSecondary"
+                    android:textSize="11sp"
+                    android:paddingTop="2dp" />
+
+                <TextView
+                    android:id="@+id/tvVehicleVin"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="VIN unknown — tap 'VIN' below to read"
+                    android:textColor="@color/textHint"
+                    android:textSize="10sp"
+                    android:fontFamily="monospace"
+                    android:paddingTop="3dp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Warning lights row — populated by DashboardController from MIL status + module DTCs.
+             Reads the cluster-style warning state via D-CAN (MIL, DTC count, DSC, EGS). -->
+        <LinearLayout
+            android:id="@+id/warningLightsRow"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="@drawable/card_bg_accent"
+            android:padding="10dp"
+            android:gravity="center"
+            android:layout_marginBottom="10dp">
+            <!-- Filled dynamically by controller -->
+        </LinearLayout>
+
+        <!-- Quick Actions — Read DTCs / Clear / VIN. Equal spacing, clear visual hierarchy. -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingBottom="14dp"
+            android:weightSum="3">
+
+            <Button
+                android:id="@+id/btnDashDtc"
+                android:layout_width="0dp"
+                android:layout_height="52dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="4dp"
+                android:background="@drawable/btn_pill_amber"
+                android:text="READ DTCs"
+                android:textColor="#000000"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.08"
+                android:stateListAnimator="@null"
+                android:minWidth="0dp"
+                android:paddingStart="6dp"
+                android:paddingEnd="6dp" />
+
+            <Button
+                android:id="@+id/btnDashReset"
+                android:layout_width="0dp"
+                android:layout_height="52dp"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp"
+                android:background="@drawable/btn_pill_red"
+                android:text="CLEAR DTCs"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.08"
+                android:stateListAnimator="@null"
+                android:minWidth="0dp"
+                android:paddingStart="6dp"
+                android:paddingEnd="6dp" />
+
+            <Button
+                android:id="@+id/btnDashVin"
+                android:layout_width="0dp"
+                android:layout_height="52dp"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:background="@drawable/btn_pill_teal"
+                android:text="READ VIN"
+                android:textColor="#000000"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.08"
+                android:stateListAnimator="@null"
+                android:minWidth="0dp"
+                android:paddingStart="6dp"
+                android:paddingEnd="6dp" />
+        </LinearLayout>
+
+        <!-- Action result chip -->
+        <TextView
+            android:id="@+id/tvDashActionResult"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/card_bg"
+            android:padding="10dp"
+            android:text=""
+            android:textSize="12sp"
+            android:textColor="#C8E6C9"
+            android:fontFamily="monospace"
+            android:visibility="gone"
+            android:layout_marginBottom="14dp" />
+
+        <!-- Hero gauges: RPM | Speed. Deep-teal gradient panel so the two cells
+             read as one continuous instrument cluster. -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="@drawable/gauge_hero_bg"
+            android:padding="6dp"
+            android:paddingBottom="10dp"
+            android:layout_marginBottom="10dp">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:padding="14dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⚙  RPM"
+                    android:textColor="#4ADEDA"
+                    android:textSize="12sp"
+                    android:letterSpacing="0.18" />
+
+                <TextView
+                    android:id="@+id/tvRpmValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="—"
+                    android:textColor="@color/textPrimary"
+                    android:textSize="72sp"
+                    android:textStyle="bold"
+                    android:fontFeatureSettings="tnum"
+                    android:paddingTop="6dp"
+                    android:includeFontPadding="false" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="rpm"
+                    android:textColor="#80FFFFFF"
+                    android:textSize="11sp" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="1dp"
+                android:layout_height="match_parent"
+                android:background="#1F4A72"
+                android:layout_marginTop="14dp"
+                android:layout_marginBottom="14dp" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:padding="14dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🏁  SPEED"
+                    android:textColor="#4ADEDA"
+                    android:textSize="12sp"
+                    android:letterSpacing="0.18" />
+
+                <TextView
+                    android:id="@+id/tvSpeedValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="—"
+                    android:textColor="@color/textPrimary"
+                    android:textSize="72sp"
+                    android:textStyle="bold"
+                    android:fontFeatureSettings="tnum"
+                    android:paddingTop="6dp"
+                    android:includeFontPadding="false" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="km/h"
+                    android:textColor="#80FFFFFF"
+                    android:textSize="11sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Live animated engine bay — drawn procedurally from RPM/coolant/MAF/oil temp -->
+        <com.example.obd.CarEngineAnimationView
+            android:id="@+id/engineAnim"
+            android:layout_width="match_parent"
+            android:layout_height="180dp"
+            android:layout_marginBottom="14dp" />
+
+        <!-- Section: Temperatures -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="TEMPERATURES"
+            android:textSize="11sp"
+            android:textColor="#80FFFFFF"
+            android:letterSpacing="0.25"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingBottom="10dp">
+
+            <include layout="@layout/tile_metric"
+                android:id="@+id/cellCoolant" />
+
+            <include layout="@layout/tile_metric"
+                android:id="@+id/cellOil" />
+        </LinearLayout>
+
+        <!-- Section: Engine -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="ENGINE"
+            android:textSize="11sp"
+            android:textColor="#80FFFFFF"
+            android:letterSpacing="0.25"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingBottom="10dp">
+
+            <include layout="@layout/tile_metric"
+                android:id="@+id/cellThrottle" />
+
+            <include layout="@layout/tile_metric"
+                android:id="@+id/cellLoad" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingBottom="10dp">
+
+            <include layout="@layout/tile_metric"
+                android:id="@+id/cellMaf" />
+
+            <include layout="@layout/tile_metric"
+                android:id="@+id/cellIntake" />
+        </LinearLayout>
+
+        <!-- Section: Other -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="ELECTRICAL / FUEL"
+            android:textSize="11sp"
+            android:textColor="#80FFFFFF"
+            android:letterSpacing="0.25"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingBottom="14dp">
+
+            <include layout="@layout/tile_metric"
+                android:id="@+id/cellBattery" />
+
+            <include layout="@layout/tile_metric"
+                android:id="@+id/cellFuel" />
+        </LinearLayout>
+
+        <!-- Hidden TextViews for compatibility with existing updateUI() -->
+        <!-- These keep the existing "Name: value unit" pipeline alive but invisible -->
+        <TextView
+            android:id="@+id/tvRpm"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone" />
+        <TextView
+            android:id="@+id/tvSpeed"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone" />
+        <TextView
+            android:id="@+id/tvCoolant"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone" />
+        <TextView
+            android:id="@+id/tvOil"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone" />
+        <TextView
+            android:id="@+id/tvThrottle"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone" />
+        <TextView
+            android:id="@+id/tvEngineLoad"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone" />
+        <TextView
+            android:id="@+id/tvMassAirFlow"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone" />
+        <TextView
+            android:id="@+id/tvIntake"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone" />
+        <TextView
+            android:id="@+id/tvBattery"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone" />
+        <TextView
+            android:id="@+id/tvFuelLevel"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Tip: N52 is naturally aspirated — no boost. RESET clears OBD-II powertrain DTCs only."
+            android:textSize="10sp"
+            android:textColor="#60FFFFFF"
+            android:paddingTop="4dp" />
+    </LinearLayout>
+</ScrollView>

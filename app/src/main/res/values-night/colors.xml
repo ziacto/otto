@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Night-cluster palette — dimmer luminance variants so the dashboard doesn't
+    blow out the driver's eyes in low-light driving. Same semantic tokens as
+    values/colors.xml; only the values change.
+-->
+<resources>
+    <color name="surfaceBase">#050508</color>
+    <color name="surfaceCard">#0F0F1A</color>
+    <color name="surfaceTopBar">#08080F</color>
+    <color name="surfaceStroke">#1A1F2E</color>
+
+    <color name="bmwBlau">#1A4A7A</color>              <!-- 30% desaturated for night -->
+    <color name="bmwBlauDim">#13345C</color>
+    <color name="bmwRot">#A60000</color>               <!-- Darker red, less aggressive after dark -->
+    <color name="bmwViolett">#5A2280</color>
+
+    <color name="textPrimary">#CCCCCC</color>          <!-- Dimmer than day off-white -->
+    <color name="textSecondary">#7C828E</color>
+    <color name="textHint">#454B5A</color>
+
+    <color name="statusOk">#3A8C40</color>
+    <color name="statusWarn">#D9A100</color>
+    <color name="statusError">#A82323</color>
+    <color name="statusInfo">#1A4A7A</color>
+
+    <color name="darkBackground">#050508</color>
+    <color name="primaryTextColor">#CCCCCC</color>
+    <color name="secondaryTextColor">#7C828E</color>
+    <color name="darkPrimary">#1A4A7A</color>
+    <color name="darkPrimaryVariant">#13345C</color>
+    <color name="darkSecondary">#1A4A7A</color>
+    <color name="accentColor">#1A4A7A</color>
+</resources>

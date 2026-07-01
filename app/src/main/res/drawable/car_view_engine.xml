@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- N52 engine bay schematic. Replace with photo-quality drawable to override. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp"
+    android:height="240dp"
+    android:viewportWidth="160"
+    android:viewportHeight="120">
+
+    <!-- Bay outline -->
+    <path android:fillColor="#1E2A3A" android:strokeColor="#03DAC5" android:strokeWidth="0.6"
+        android:pathData="M6,8 L154,8 L154,112 L6,112 Z" />
+
+    <!-- Valve cover (long inline-6) -->
+    <path android:fillColor="#0E0E1A" android:strokeColor="#03DAC5" android:strokeWidth="0.6"
+        android:pathData="M40,30 L120,30 L120,72 L40,72 Z" />
+
+    <!-- Coil pack blocks (6 cyl) -->
+    <path android:fillColor="#03DAC5"
+        android:pathData="M44,36 L52,36 L52,66 L44,66 Z" />
+    <path android:fillColor="#03DAC5"
+        android:pathData="M56,36 L64,36 L64,66 L56,66 Z" />
+    <path android:fillColor="#03DAC5"
+        android:pathData="M68,36 L76,36 L76,66 L68,66 Z" />
+    <path android:fillColor="#03DAC5"
+        android:pathData="M80,36 L88,36 L88,66 L80,66 Z" />
+    <path android:fillColor="#03DAC5"
+        android:pathData="M92,36 L100,36 L100,66 L92,66 Z" />
+    <path android:fillColor="#03DAC5"
+        android:pathData="M104,36 L112,36 L112,66 L104,66 Z" />
+
+    <!-- Intake manifold -->
+    <path android:fillColor="#0E0E1A" android:strokeColor="#03DAC5" android:strokeWidth="0.5"
+        android:pathData="M40,76 L120,76 L120,90 L40,90 Z" />
+
+    <!-- Air filter box (left) -->
+    <path android:fillColor="#0E0E1A" android:strokeColor="#03DAC5" android:strokeWidth="0.5"
+        android:pathData="M10,30 L34,30 L34,60 L10,60 Z" />
+
+    <!-- Coolant reservoir (right) -->
+    <path android:fillColor="#0E0E1A" android:strokeColor="#03DAC5" android:strokeWidth="0.5"
+        android:pathData="M126,30 L150,30 L150,60 L126,60 Z" />
+
+    <!-- Radiator hose hint -->
+    <path android:strokeColor="#03DAC5" android:strokeWidth="0.5"
+        android:pathData="M150,45 L154,45" />
+</vector>

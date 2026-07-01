@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Help Me Buy a Car"
+            android:textColor="@color/white"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:paddingBottom="4dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Tell us your budget and what you want. We'll suggest 3-5 cars to look for on Dubizzle — with their known faults, reliability ratings, and Dubai prices."
+            android:textColor="#B0B0B0"
+            android:textSize="13sp"
+            android:paddingBottom="16dp" />
+
+        <!-- Input form card -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/card_bg"
+            android:orientation="vertical"
+            android:padding="14dp"
+            android:layout_marginBottom="14dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Budget (AED)"
+                android:textColor="@color/white"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:paddingBottom="4dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <EditText
+                    android:id="@+id/etBudgetLow"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:hint="Min e.g. 20000"
+                    android:inputType="number"
+                    android:textColor="@color/white"
+                    android:textColorHint="#666"
+                    android:background="#202020"
+                    android:padding="10dp" />
+
+                <View
+                    android:layout_width="8dp"
+                    android:layout_height="match_parent" />
+
+                <EditText
+                    android:id="@+id/etBudgetHigh"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:hint="Max e.g. 60000"
+                    android:inputType="number"
+                    android:textColor="@color/white"
+                    android:textColorHint="#666"
+                    android:background="#202020"
+                    android:padding="10dp" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Body type"
+                android:textColor="@color/white"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:paddingTop="12dp"
+                android:paddingBottom="4dp" />
+
+            <Spinner
+                android:id="@+id/spBodyType"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="#202020" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Main use"
+                android:textColor="@color/white"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:paddingTop="12dp"
+                android:paddingBottom="4dp" />
+
+            <Spinner
+                android:id="@+id/spUseCase"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="#202020" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="What matters most? (one or two words each, comma-separated)"
+                android:textColor="@color/white"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:paddingTop="12dp"
+                android:paddingBottom="4dp" />
+
+            <EditText
+                android:id="@+id/etPriorities"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="e.g. reliability, low running cost, comfort, fuel economy"
+                android:inputType="text"
+                android:textColor="@color/white"
+                android:textColorHint="#666"
+                android:background="#202020"
+                android:padding="10dp" />
+
+            <EditText
+                android:id="@+id/etNotes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:hint="Optional — anything else: brands to avoid, mileage limit, must have features…"
+                android:inputType="textMultiLine|textCapSentences"
+                android:minLines="2"
+                android:maxLines="4"
+                android:textColor="@color/white"
+                android:textColorHint="#666"
+                android:background="#202020"
+                android:padding="10dp" />
+
+            <Button
+                android:id="@+id/btnRecommend"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="🚗 Recommend cars" />
+
+            <TextView
+                android:id="@+id/tvKeyHint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Tip: save your Gemini key in the AI Repair Estimator screen first."
+                android:textColor="#9E9E9E"
+                android:textSize="11sp"
+                android:paddingTop="6dp"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <!-- Result card -->
+        <LinearLayout
+            android:id="@+id/advisorResultCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/card_bg"
+            android:orientation="vertical"
+            android:padding="14dp"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Recommendations"
+                android:textColor="@color/white"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:paddingBottom="8dp" />
+
+            <ProgressBar
+                android:id="@+id/advisorProgress"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/advisorRawResult"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textColor="#E0E0E0"
+                android:textSize="13sp"
+                android:textIsSelectable="true"
+                android:visibility="gone" />
+
+            <LinearLayout
+                android:id="@+id/advisorCarsContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Recommendations are AI-generated. Always inspect any used car with a workshop before buying."
+                android:textColor="#808080"
+                android:textSize="11sp"
+                android:paddingTop="10dp"
+                android:textStyle="italic" />
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>
