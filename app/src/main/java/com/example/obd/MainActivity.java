@@ -255,6 +255,16 @@ public class MainActivity extends AppCompatActivity {
                     ObdLogger.get().log(ObdLogger.Level.ERROR, "Sim boot failed: " + e);
                 }
             }, "SimBootFromIntent").start();
+        } else if ("fuel_probe".equals(debugAction)) {
+            // Walk BMW UDS candidate DIDs for fuel level. Writes each raw
+            // response + decoded value to obd-diag.log so we can see which
+            // DID (if any) the user's DME actually answers.
+            new Thread(() -> {
+                FuelLevelProbe.Result r = FuelLevelProbe.run(this, obdManager);
+                ObdLogger.get().log(ObdLogger.Level.INFO,
+                        "FUEL_PROBE " + (r.bestMatch != null ? "PASS" : "FAIL")
+                                + "\n" + r.report);
+            }, "FuelProbe").start();
         } else if ("ai_chat_test".equals(debugAction)) {
             // Dry-run: exercise the AI chat + Google Search grounding wire
             // end-to-end without needing to pick a photo, tap through the
@@ -613,6 +623,21 @@ public class MainActivity extends AppCompatActivity {
                                 Toast.LENGTH_LONG).show());
                     }
                 }, "SimulatorBoot").start();
+                return true;
+            } else if (id == R.id.nav_fuel_probe) {
+                Toast.makeText(this, "Probing fuel-level DIDs — this takes ~15 s…",
+                        Toast.LENGTH_LONG).show();
+                new Thread(() -> {
+                    FuelLevelProbe.Result r = FuelLevelProbe.run(this, obdManager);
+                    runOnUiThread(() ->
+                            new androidx.appcompat.app.AlertDialog.Builder(this)
+                                    .setTitle(r.bestMatch != null
+                                            ? "Found a working DID"
+                                            : "No DID responded")
+                                    .setMessage(r.report)
+                                    .setPositiveButton("OK", null)
+                                    .show());
+                }, "FuelProbeUI").start();
                 return true;
             } else if (id == R.id.nav_selftest) {
                 Toast.makeText(this, "Running self-test (about 12 s)…",

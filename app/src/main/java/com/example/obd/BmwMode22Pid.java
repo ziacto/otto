@@ -66,7 +66,27 @@ public final class BmwMode22Pid {
         // DID 0x4119 belongs to the EGS (GS19 TCU), not DME. Routing to DME returns NO DATA.
         TRANS_FLUID_TEMP(
                 BmwModule.EGS, 0x4119, "Trans Fluid Temp", "°C",
-                d -> d.length >= 1 ? (double) ((d[0] & 0xFF) - 50) : null);
+                d -> d.length >= 1 ? (double) ((d[0] & 0xFF) - 50) : null),
+
+        // --- Fuel level candidates ---
+        // BMW E65 DME doesn't answer Mode 01 PID 2F, so we probe UDS Mode 22.
+        // Actual fuel state lives in the KOMBI (K-CAN) — but the DME often
+        // caches a copy pushed from KOMBI over the internal CAN bridge. These
+        // DIDs are the community-documented candidates; only one is correct
+        // per DME variant (MSV70 vs MSV80) and we don't know which until
+        // FuelLevelProbe runs on the car. Formula on both is 0-255 → 0-100 %.
+        FUEL_LEVEL_DME_400C(
+                BmwModule.DME, 0x400C, "Fuel Level (DME 400C)", "%",
+                d -> d.length >= 1 ? (d[0] & 0xFF) * 100.0 / 255.0 : null),
+        FUEL_LEVEL_DME_4021(
+                BmwModule.DME, 0x4021, "Fuel Level (DME 4021)", "%",
+                d -> d.length >= 1 ? (d[0] & 0xFF) * 100.0 / 255.0 : null),
+        FUEL_LEVEL_DME_402A(
+                BmwModule.DME, 0x402A, "Fuel Level (DME 402A)", "%",
+                d -> d.length >= 1 ? (d[0] & 0xFF) * 100.0 / 255.0 : null),
+        FUEL_LEVEL_DME_5C40(
+                BmwModule.DME, 0x5C40, "Fuel Level (DME 5C40)", "%",
+                d -> d.length >= 1 ? (d[0] & 0xFF) * 100.0 / 255.0 : null);
 
         public final BmwModule module;
         public final int did;          // 16-bit identifier

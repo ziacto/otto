@@ -97,7 +97,8 @@ public abstract class ObdCommand {
      * commands (ATRV, ATZ, ...) the raw string is returned unchanged so the
      * existing ATRV voltage parser keeps working.
      */
-    private String isolatePositiveResponse(String raw) {
+    /** Package-visible for {@link ParserSmokeTest}. */
+    String isolatePositiveResponse(String raw) {
         if (command.length() < 4) return raw;
         char c0 = command.charAt(0);
         if (!Character.isDigit(c0)) return raw; // AT-style command, no NRC concept

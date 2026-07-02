@@ -92,6 +92,9 @@
         android:id="@+id/nav_selftest"
         android:title="Run Self-Test" />
     <item
+        android:id="@+id/nav_fuel_probe"
+        android:title="Probe Fuel Level (BMW UDS)" />
+    <item
         android:id="@+id/nav_clear_data"
         android:title="Clear Data (logs &amp; cache)" />
     <item

@@ -174,6 +174,8 @@ class CarHeroSceneView @JvmOverloads constructor(
                 rightTailEntity = addPointLight( 0.20f, 0.15f, -0.55f, 1.0f, 0.20f, 0.15f, baseTailIntensity)
             } catch (e: Throwable) {
                 Log.w(TAG, "Headlight setup failed (non-fatal): ${e.message}")
+            ObdLogger.get().log(ObdLogger.Level.ERROR,
+                    "SceneView headlight setup failed: ${e.message}")
             }
 
             lastFrameNs = 0L
@@ -181,6 +183,8 @@ class CarHeroSceneView @JvmOverloads constructor(
             choreographer.postFrameCallback(frameCallback)
         } catch (e: Throwable) {
             Log.e(TAG, "GLB load failed: ${e.message}", e)
+            ObdLogger.get().log(ObdLogger.Level.ERROR,
+                    "SceneView GLB load failed: ${e.javaClass.simpleName}: ${e.message}")
         }
     }
 

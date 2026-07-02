@@ -512,6 +512,29 @@ public class ObdManagerFast {
      * Useful for "engine run distance" / "operating hours" type DIDs where the
      * payload format is just an integer, not a structured value.
      */
+    /**
+     * Send a UDS Mode 22 read for {@code did} to {@code module} and return the
+     * raw ELM327 response string — including negative responses ("7F 22 xx"),
+     * "NO DATA", etc. Use this when you need to probe an unknown DID and see
+     * exactly what the ECU said, rather than have the plumbing swallow non-
+     * positive replies. Blocking; call off the UI thread.
+     */
+    public synchronized String readUdsRawResponse(BmwModule module, int did) throws IOException {
+        if (connection == null || !connection.isConnected()) throw new IOException("Not connected");
+        stopAndJoinPollThread();
+        try {
+            setupModuleRouting(module);
+            String tgt = module.headerHint.split(" ")[1];
+            String cmd = String.format("%s 22 %02X %02X", tgt, (did >> 8) & 0xFF, did & 0xFF);
+            String raw = sendRawNoTimeout(cmd);
+            sendAt("ATCRA");
+            sendAt("ATAR");
+            return raw == null ? "" : raw.trim();
+        } finally {
+            if (connection != null && connection.isConnected()) startPolling();
+        }
+    }
+
     public synchronized Double readUdsRawNumeric(BmwModule module, int did, int byteCount) throws IOException {
         if (connection == null || !connection.isConnected()) throw new IOException("Not connected");
         stopAndJoinPollThread();
