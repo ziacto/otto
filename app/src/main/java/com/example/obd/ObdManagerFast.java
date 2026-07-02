@@ -920,10 +920,27 @@ public class ObdManagerFast {
                     // silently skip this command, keep connection open. But log
                     // the transition success->fail so we can see *why* the user
                     // suddenly sees no data.
+                    String msg = e.getMessage() == null ? "" : e.getMessage();
                     if (cmdHealth.get(name) != Boolean.FALSE) {
                         ObdLogger.get().log(ObdLogger.Level.ERROR,
-                                "Poll FAIL: " + name + " — " + e.getMessage());
+                                "Poll FAIL: " + name + " — " + msg);
                         cmdHealth.put(name, Boolean.FALSE);
+                    }
+                    // A dead socket is a definite disconnect. Any "Broken pipe"
+                    // or "Connection reset" or a null-stream error means we're
+                    // going to keep getting the same error on every command for
+                    // the rest of the poll cycle — bail out immediately so the
+                    // reconnect watchdog can start a new session ~30s sooner
+                    // than the 3-empty-cycle rule would.
+                    if (msg.toLowerCase().contains("broken pipe")
+                            || msg.toLowerCase().contains("connection reset")
+                            || msg.toLowerCase().contains("stream closed")
+                            || msg.toLowerCase().contains("socket closed")) {
+                        ObdLogger.get().log(ObdLogger.Level.ERROR,
+                                "Poll socket dead — forcing disconnect");
+                        listener.onError("OBD adapter disconnected");
+                        disconnect();
+                        return;
                     }
                 }
             }

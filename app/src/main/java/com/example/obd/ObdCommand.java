@@ -61,35 +61,32 @@ public abstract class ObdCommand {
 
         String raw = res.toString().trim();
 
-        // ELM327 status messages are not vehicle data – throw as IOException
-        // so pollLoop() silently skips them instead of triggering a disconnect
+        // Try to isolate a positive Mode-01 response FIRST — before checking
+        // for ELM status keywords. Real hardware sometimes returns mixed
+        // buffers like "01 12 41 06 83 STOPPED" where valid Mode-01 data
+        // (`41 06 83`) is followed by a stale STOPPED marker from a prior
+        // command. If we ran the ELM-status check first, "STOPPED" would
+        // cause us to throw away perfectly good data. See crash from log
+        // 2026-07-01 18:33:58 for the exact response shape.
+        String isolated = isolatePositiveResponse(raw);
+        if (isolated != null) {
+            try {
+                double v = parseResult(isolated);
+                consecutiveNoData = 0;
+                return v;
+            } catch (Exception e) {
+                throw new IOException("Parse error [" + getName() + "]: " + raw);
+            }
+        }
+
+        // No positive response — fall back to ELM-status detection.
         if (raw.isEmpty() || isElm327Status(raw)) {
             consecutiveNoData++;
             throw new IOException("ELM: " + raw);
         }
-
-        // Filter out ECU negative-response codes (e.g. "7F 01 12" = service 01
-        // not supported for this PID) BEFORE handing bytes to parseResult(). On
-        // the BMW E65 DME only PIDs 01, 0C, 0D are supported over Mode 01 —
-        // every other PID returns "7F 01 12". Without this guard the parsers
-        // happily read the NRC byte (0x12 = 18) as data, which surfaces as
-        // Coolant=-22°C / Throttle=7% / Load=7% on the dashboard. Also handles
-        // the mixed "7F 01 12 41 XX YY" case by preferring the positive-response
-        // bytes when both are present in the buffer.
-        String isolated = isolatePositiveResponse(raw);
-        if (isolated == null) {
-            consecutiveNoData++;
-            throw new IOException("ELM: NO DATA");
-        }
-
-        try {
-            double v = parseResult(isolated);
-            consecutiveNoData = 0;
-            return v;
-        } catch (Exception e) {
-            // NumberFormatException or similar – not a connection problem, just an unrecognized response
-            throw new IOException("Parse error [" + getName() + "]: " + raw);
-        }
+        // Unknown but non-empty response — treat as NO DATA.
+        consecutiveNoData++;
+        throw new IOException("ELM: NO DATA");
     }
 
     /**

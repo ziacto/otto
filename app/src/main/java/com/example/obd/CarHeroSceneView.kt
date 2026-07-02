@@ -5,6 +5,8 @@ import android.util.AttributeSet
 import android.util.Log
 import android.view.Choreographer
 import androidx.lifecycle.findViewTreeLifecycleOwner
+import com.google.android.filament.EntityManager
+import com.google.android.filament.LightManager
 import io.github.sceneview.SceneView
 import io.github.sceneview.math.Position
 import io.github.sceneview.math.Rotation
@@ -44,6 +46,16 @@ class CarHeroSceneView @JvmOverloads constructor(
     private val rotationDegPerSec = 35f
     private val choreographer = Choreographer.getInstance()
 
+    // Two Filament point lights positioned in front of the car (world +Z),
+    // pulsed on each frame to simulate parking lights blinking. Native
+    // entities — we destroy them on detach to avoid leaking Filament handles.
+    private var leftHeadEntity = 0
+    private var rightHeadEntity = 0
+    private var leftTailEntity = 0
+    private var rightTailEntity = 0
+    private val baseHeadIntensity = 60000f
+    private val baseTailIntensity = 30000f
+
     // ---- Animation curves (all wall-clock parametric so no easing state) ----
     // Continuous yaw rotation is the primary motion. Layered on top:
     //   * floatY  — vertical bob every 3.2 s
@@ -60,8 +72,6 @@ class CarHeroSceneView @JvmOverloads constructor(
                 val t = (frameTimeNanos - startNs) / 1_000_000_000f
 
                 // ---- Stylish camera orbit ----
-                // Camera swings around the car on a horizontal arc, dipping
-                // up and down slightly so it feels like a hand-held rig.
                 val orbitPeriodS = 9.0
                 val angle = (t / orbitPeriodS * 2.0 * PI).toFloat()
                 val radius = 4.2f
@@ -72,20 +82,36 @@ class CarHeroSceneView @JvmOverloads constructor(
                 cameraNode.lookAt(node)
 
                 // ---- Model motion ----
-                // Very slight scale breathing so the shell feels alive even
-                // when the camera is briefly stationary at the arc endpoints.
                 val s = 1.0f + 0.010f * sin((t / 4.2 * 2.0 * PI).toFloat())
                 node.scale = Scale(s, s, s)
-                // Y-bob (tiny — heavy visual movement is already coming from
-                // the camera orbit).
                 val bob = 0.02f * sin((t / 3.2 * 2.0 * PI).toFloat())
                 val pos = node.position
                 node.position = Position(pos.x, baseY + bob, pos.z)
+
+                // ---- Headlight parking-pulse ----
+                // Two-phase pulse: fast blink at 0.85 Hz for the "parked with
+                // hazards on" feel. Duty cycle sine → clamped so lights spend
+                // more time bright than dim. Tail lights pulse counter-phase
+                // so front + rear alternate — reads as "car is running".
+                pulseLights(t)
             }
             lastFrameNs = frameTimeNanos
             if (startNs == 0L) startNs = frameTimeNanos
             if (isAttachedToWindow) choreographer.postFrameCallback(this)
         }
+    }
+
+    private fun pulseLights(t: Float) {
+        val lm = try { engine.lightManager } catch (_: Throwable) { return }
+        val headPhase = 0.5f + 0.5f * sin(t * (2 * PI) / 1.2).toFloat()
+        val tailPhase = 0.5f + 0.5f * sin(t * (2 * PI) / 1.2 + PI.toFloat()).toFloat()
+        // Bias so lights never fully turn off — parking lights hover.
+        val headIntensity = baseHeadIntensity * (0.55f + 0.65f * headPhase)
+        val tailIntensity = baseTailIntensity * (0.45f + 0.75f * tailPhase)
+        if (leftHeadEntity != 0)  lm.setIntensity(lm.getInstance(leftHeadEntity),  headIntensity)
+        if (rightHeadEntity != 0) lm.setIntensity(lm.getInstance(rightHeadEntity), headIntensity)
+        if (leftTailEntity != 0)  lm.setIntensity(lm.getInstance(leftTailEntity),  tailIntensity)
+        if (rightTailEntity != 0) lm.setIntensity(lm.getInstance(rightTailEntity), tailIntensity)
     }
 
     override fun onAttachedToWindow() {
@@ -98,11 +124,24 @@ class CarHeroSceneView @JvmOverloads constructor(
     }
 
     override fun onDetachedFromWindow() {
-        // Memory leak protection: cancel the frame callback (would keep this
-        // View alive indefinitely via Choreographer's callback queue), drop
-        // the ModelNode ref (holds a big native handle), and let SceneView's
-        // own destroy() release the Filament engine.
+        // Memory leak protection: cancel the frame callback, tear down the
+        // light entities (Filament EntityManager leaks otherwise), destroy
+        // the ModelNode, drop refs. SceneView takes care of the engine.
         choreographer.removeFrameCallback(frameCallback)
+        try {
+            val em = EntityManager.get()
+            for (e in intArrayOf(leftHeadEntity, rightHeadEntity, leftTailEntity, rightTailEntity)) {
+                if (e != 0) {
+                    try { scene.removeEntity(e) } catch (_: Throwable) {}
+                    try { engine.lightManager.destroy(e) } catch (_: Throwable) {}
+                    em.destroy(e)
+                }
+            }
+        } catch (_: Throwable) {}
+        leftHeadEntity = 0
+        rightHeadEntity = 0
+        leftTailEntity = 0
+        rightTailEntity = 0
         modelNode?.let {
             try { it.destroy() } catch (_: Throwable) {}
         }
@@ -113,10 +152,6 @@ class CarHeroSceneView @JvmOverloads constructor(
     private fun tryLoadModel() {
         try {
             val modelInstance = modelLoader.createModelInstance("models/car.glb")
-            // scaleToUnits=1.0 tells SceneView to normalise the model's
-            // bounding box to a 1-unit sphere. Combined with a camera
-            // radius of ~4.2 units this leaves the whole car comfortably
-            // inside the viewport at every camera angle.
             val node = ModelNode(
                 modelInstance = modelInstance,
                 autoAnimate = true,
@@ -126,12 +161,46 @@ class CarHeroSceneView @JvmOverloads constructor(
             addChildNode(node)
             modelNode = node
             baseY = node.position.y
+
+            // Add two Filament point lights at approximate headlight positions
+            // (front of the car, +Z) and two at the tail (-Z). Positions are
+            // in world space; because the car is stationary and the camera
+            // orbits, the "headlights" stay locked to the front of the body
+            // from any viewing angle.
+            try {
+                leftHeadEntity  = addPointLight(-0.20f, 0.15f,  0.55f, 1.0f, 0.95f, 0.80f, baseHeadIntensity)
+                rightHeadEntity = addPointLight( 0.20f, 0.15f,  0.55f, 1.0f, 0.95f, 0.80f, baseHeadIntensity)
+                leftTailEntity  = addPointLight(-0.20f, 0.15f, -0.55f, 1.0f, 0.20f, 0.15f, baseTailIntensity)
+                rightTailEntity = addPointLight( 0.20f, 0.15f, -0.55f, 1.0f, 0.20f, 0.15f, baseTailIntensity)
+            } catch (e: Throwable) {
+                Log.w(TAG, "Headlight setup failed (non-fatal): ${e.message}")
+            }
+
             lastFrameNs = 0L
             startNs = 0L
             choreographer.postFrameCallback(frameCallback)
         } catch (e: Throwable) {
             Log.e(TAG, "GLB load failed: ${e.message}", e)
         }
+    }
+
+    /** Create a Filament POINT light at (x,y,z) with the given RGB colour + intensity.
+     *  Returns the entity ID so we can pulse or destroy it later. */
+    private fun addPointLight(
+        x: Float, y: Float, z: Float,
+        r: Float, g: Float, b: Float,
+        intensity: Float
+    ): Int {
+        val entity = EntityManager.get().create()
+        LightManager.Builder(LightManager.Type.POINT)
+            .position(x, y, z)
+            .color(r, g, b)
+            .intensity(intensity)
+            .falloff(2.5f)
+            .castShadows(false)
+            .build(engine, entity)
+        scene.addEntity(entity)
+        return entity
     }
 
     companion object {
