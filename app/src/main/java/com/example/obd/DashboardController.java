@@ -28,6 +28,23 @@ public class DashboardController {
     // we don't overlap ongoing animations.
     private final Map<String, ValueAnimator> activeAnimators = new HashMap<>();
     private static final long TWEEN_MS = 200L;
+    // Wall-clock timestamp of the last real onValue() per sensor. If no
+    // sample has arrived within STALE_MS (e.g. because the PID is NRC'd or
+    // the socket dropped), the cell renders "—" instead of a cached zero
+    // so users don't mistake stale data for real readings. Fuel Level was
+    // the trigger for this — E65 DME doesn't expose 012F, so the cached
+    // "0" from an earlier session bug was misread as "empty tank".
+    private final Map<String, Long> lastRealSampleMs = new HashMap<>();
+    private static final long STALE_MS = 6_000L;
+    private final android.os.Handler staleTicker = new android.os.Handler(android.os.Looper.getMainLooper());
+    private final Runnable stalenessCheck = new Runnable() {
+        @Override public void run() {
+            if (root != null) {
+                sweepStaleCells();
+                staleTicker.postDelayed(this, 1500L);
+            }
+        }
+    };
     private View root;
     private Activity activity;
     private ObdManagerFast obdManager;
@@ -81,6 +98,11 @@ public class DashboardController {
         renderVehicleCard(null);  // shows placeholder until a VIN is known
         loadVehicleFromDb();      // populate card from the last saved VIN, if any
         updateStatus();
+
+        // Kick the staleness sweeper so PIDs the ECU never answers (fuel
+        // level on E65 is a classic) don't show a lingering cached "0".
+        staleTicker.removeCallbacks(stalenessCheck);
+        staleTicker.postDelayed(stalenessCheck, 1500L);
     }
 
     /** Apply a (possibly null) VinDecoder.Result to the vehicle info card. */
@@ -127,6 +149,7 @@ public class DashboardController {
     }
 
     public void detach() {
+        staleTicker.removeCallbacks(stalenessCheck);
         root = null;
         activity = null;
         engineAnim = null;
@@ -134,10 +157,43 @@ public class DashboardController {
         cellByName.clear();
         smoothed.clear();
         displayed.clear();
+        lastRealSampleMs.clear();
         for (ValueAnimator a : activeAnimators.values()) {
             if (a != null) a.cancel();
         }
         activeAnimators.clear();
+    }
+
+    /**
+     * Every ~1.5 s, look at all bound cells and replace the value with "—"
+     * if we haven't received a real onValue() sample within STALE_MS.
+     * Prevents the "cached 0 from a prior session" bug that made Fuel Level
+     * look like an empty tank on the BMW E65 (whose DME simply doesn't
+     * answer Mode 01 PID 2F).
+     */
+    private void sweepStaleCells() {
+        if (root == null) return;
+        long now = System.currentTimeMillis();
+        for (Map.Entry<String, View> e : cellByName.entrySet()) {
+            Long last = lastRealSampleMs.get(e.getKey());
+            boolean stale = (last == null) || (now - last > STALE_MS);
+            if (!stale) continue;
+            TextView tv = e.getValue().findViewById(R.id.tileValue);
+            if (tv != null && !"—".contentEquals(tv.getText())) {
+                tv.setText("—");
+            }
+        }
+        // Hero RPM + Speed too
+        Long rpmLast = lastRealSampleMs.get("RPM");
+        if (rpmLast == null || now - rpmLast > STALE_MS) {
+            TextView tv = root.findViewById(R.id.tvRpmValue);
+            if (tv != null && !"—".contentEquals(tv.getText())) tv.setText("—");
+        }
+        Long speedLast = lastRealSampleMs.get("Vehicle Speed");
+        if (speedLast == null || now - speedLast > STALE_MS) {
+            TextView tv = root.findViewById(R.id.tvSpeedValue);
+            if (tv != null && !"—".contentEquals(tv.getText())) tv.setText("—");
+        }
     }
 
     public boolean isAttached() { return root != null; }
@@ -188,6 +244,9 @@ public class DashboardController {
     /** Called by MainActivity.updateUI when dashboard is active. */
     public void onValue(String name, double value) {
         if (root == null) return;
+        // Mark this sensor as "freshly reporting" so the staleness sweep
+        // doesn't overwrite it with "—".
+        lastRealSampleMs.put(name, System.currentTimeMillis());
 
         double display = smooth(name, value);
 
