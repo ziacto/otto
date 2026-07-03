@@ -83,7 +83,10 @@ public class ServiceFunctionsController {
                         sb.append("  SW ver:   ").append(id.softwareVersion == null ? "—" : id.softwareVersion).append("\n");
                         sb.append("  HW ver:   ").append(id.hardwareNumber == null ? "—" : id.hardwareNumber).append("\n");
                         sb.append("  VIN echo: ").append(id.vinFromEcu == null ? "—" : id.vinFromEcu).append("\n\n");
-                    } catch (IOException e) {
+                    } catch (Exception e) {
+                        // Exception, not just IOException — a RuntimeException
+                        // from garbage adapter output used to kill this worker
+                        // with the button left disabled.
                         sb.append(mod.label).append("\n  ERROR: ").append(e.getMessage()).append("\n\n");
                     }
                 }
@@ -135,7 +138,7 @@ public class ServiceFunctionsController {
                 boolean ok = manager.resetCbsCounter(item);
                 msg = ok ? ("✓ " + item.label + " counter reset OK")
                          : ("✗ DME did not acknowledge — counter may not be reset");
-            } catch (IOException e) {
+            } catch (Exception e) {
                 msg = "✗ Error: " + e.getMessage();
             }
             String finalMsg = msg;
@@ -197,7 +200,7 @@ public class ServiceFunctionsController {
                 boolean ok = manager.registerBattery(cap, type);
                 msg = ok ? ("✓ Battery " + cap + "Ah " + type.label + " registered")
                          : ("✗ DME did not acknowledge — registration may have failed");
-            } catch (IOException e) {
+            } catch (Exception e) {
                 msg = "✗ Error: " + e.getMessage();
             }
             String finalMsg = msg;
@@ -259,7 +262,7 @@ public class ServiceFunctionsController {
                         }
                     }
                 }
-            } catch (IOException e) {
+            } catch (Exception e) {
                 final String msg = e.getMessage();
                 ui.post(() -> status.setText("✗ Sniffer error: " + msg));
             } finally {
@@ -278,7 +281,7 @@ public class ServiceFunctionsController {
         snifferRunning = false;
         new Thread(() -> {
             try { manager.stopSniffer(); }
-            catch (IOException e) {
+            catch (Exception e) {
                 final String msg = e.getMessage();
                 ui.post(() -> status.setText("Stop error: " + msg));
             }
@@ -288,9 +291,14 @@ public class ServiceFunctionsController {
     private void stopSnifferIfRunning() {
         if (snifferRunning) {
             snifferRunning = false;
-            try {
-                if (manager != null) manager.stopSniffer();
-            } catch (IOException ignored) {}
+            // Off the UI thread: stopSniffer() does Bluetooth I/O (drain +
+            // AT restore, ~1.5 s) and detach() calls this from the nav
+            // listener — running it inline janked every exit mid-capture.
+            final ObdManagerFast m = manager;
+            if (m == null) return;
+            new Thread(() -> {
+                try { m.stopSniffer(); } catch (Exception ignored) {}
+            }, "CanSnifferStopNav").start();
         }
     }
 

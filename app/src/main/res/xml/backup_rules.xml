@@ -1,13 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?><!--
-   Sample backup rules file; uncomment and customize as necessary.
-   See https://developer.android.com/guide/topics/data/autobackup
-   for details.
-   Note: This file is ignored for devices older than API 31
-   See https://developer.android.com/about/versions/12/backup-restore
+   Auto Backup rules for devices older than API 31 (newer devices use
+   data_extraction_rules.xml). allowBackup stays on so harmless state (saved
+   adapter MAC, odometer prefs) survives reinstalls, but anything that can
+   identify the car or its whereabouts must not leave the device:
+
+     - Room DB (obd.db + WAL/SHM sidecars): VIN profiles, scan reports, trips.
+     - External files dir: obd-diag.log(+rotations), obd-events.log (VIN + GPS
+       fixes — the most sensitive file the app writes), obd-crash-*.log, and
+       exported reports. Crash files have timestamped names, so the whole
+       domain is excluded rather than chasing patterns.
 -->
 <full-backup-content>
-    <!--
-   <include domain="sharedpref" path="."/>
-   <exclude domain="sharedpref" path="device.xml"/>
--->
+    <exclude domain="database" path="obd.db"/>
+    <exclude domain="database" path="obd.db-wal"/>
+    <exclude domain="database" path="obd.db-shm"/>
+    <exclude domain="external" path="."/>
 </full-backup-content>

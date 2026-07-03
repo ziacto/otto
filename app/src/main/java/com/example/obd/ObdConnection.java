@@ -102,11 +102,16 @@ public class ObdConnection {
         } catch (IOException e) {
             ObdLogger.get().log(ObdLogger.Level.INFO,
                     "SPP UUID connect failed (" + e.getMessage() + "), trying ch1 reflection");
+            // Close the failed socket before overwriting it — a half-open
+            // RFCOMM socket left dangling keeps the adapter's SPP slot busy.
+            try { if (socket != null) socket.close(); } catch (IOException ignored) {}
             try {
                 Method m = device.getClass().getMethod("createRfcommSocket", int.class);
                 socket = (BluetoothSocket) m.invoke(device, 1);
                 socket.connect();
             } catch (Exception ex) {
+                try { if (socket != null) socket.close(); } catch (IOException ignored) {}
+                socket = null;
                 throw new IOException("OBD connection failed: " + ex.getMessage());
             }
         }
@@ -117,7 +122,18 @@ public class ObdConnection {
 
     private void connectBle(Context context, BluetoothDevice device) throws IOException {
         bleTransport = new BleObdTransport();
-        bleTransport.connect(context, device);
+        try {
+            bleTransport.connect(context, device);
+        } catch (IOException e) {
+            // A connect/discovery timeout must not leave a half-open GATT
+            // client behind: it can still complete in the background, hold the
+            // adapter's only BLE link, and — repeated across retries — exhaust
+            // Android's GATT client slots (status-133 storms). Close it before
+            // the caller falls back to classic SPP.
+            try { bleTransport.disconnect(); } catch (Exception ignored) {}
+            bleTransport = null;
+            throw e;
+        }
         in = bleTransport.getInput();
         out = bleTransport.getOutput();
     }
@@ -157,7 +173,10 @@ public class ObdConnection {
         boolean atzOk = false;
         for (int i = 0; i < 4 && !atzOk; i++) {
             String resp = captureInit("ATZ");
-            if (resp != null && (resp.toUpperCase().contains("ELM") || !resp.isEmpty())) {
+            // Require the actual "ELM327 vX.Y" banner. The old check accepted
+            // any non-empty response, which made a garbage byte count as a
+            // healthy reset and hid genuinely broken adapters until polling.
+            if (resp != null && resp.toUpperCase().contains("ELM")) {
                 atzOk = true;
                 break;
             }

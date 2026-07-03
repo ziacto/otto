@@ -52,6 +52,18 @@ public class ObdService extends Service {
         managerRef = manager;
     }
 
+    /**
+     * Clear the static refs when the Activity finishes. The manager holds the
+     * Activity context, so leaving these set leaked every destroyed
+     * MainActivity instance until the next onCreate overwrote them.
+     */
+    public static void unbind() {
+        helperRef = null;
+        managerRef = null;
+        state = ConnectionState.IDLE;
+        reconnectAttempts = 0;
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();

@@ -11,6 +11,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -30,6 +31,9 @@ public final class GeminiVisionProvider implements AiVisionProvider {
             "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
     private static final int CONNECT_TIMEOUT_MS = 15_000;
     private static final int READ_TIMEOUT_MS = 60_000;
+    // One retry only — free-tier 429s clear within seconds, but anything longer
+    // should fail fast so the user isn't staring at a frozen spinner.
+    private static final long RETRY_BACKOFF_MS = 2_000;
 
     private static final String PROMPT_TEMPLATE =
             "You are a senior automotive technician in DUBAI, UAE, writing a complete "
@@ -42,7 +46,7 @@ public final class GeminiVisionProvider implements AiVisionProvider {
             + "{\n"
             + "  \"identified_part\": string,\n"
             + "  \"confidence\": \"high\"|\"medium\"|\"low\",\n"
-            + "  \"severity\": \"Drive immediately\"|\"Drive carefully\"|\"Stop driving\"|\"Cosmetic only\",\n"
+            + "  \"severity\": \"Repair immediately\"|\"Drive carefully\"|\"Stop driving\"|\"Cosmetic only\",\n"
             + "  \"difficulty\": \"DIY easy\"|\"DIY moderate\"|\"DIY hard\"|\"Workshop only\",\n"
             + "  \"time_to_fix_hours_low\": number,\n"
             + "  \"time_to_fix_hours_high\": number,\n"
@@ -121,27 +125,7 @@ public final class GeminiVisionProvider implements AiVisionProvider {
                 history == null ? Collections.<ChatTurn>emptyList() : history,
                 question);
 
-        URL url = new URL(ENDPOINT + "?key=" + apiKey);
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        try {
-            conn.setRequestMethod("POST");
-            conn.setConnectTimeout(CONNECT_TIMEOUT_MS);
-            conn.setReadTimeout(READ_TIMEOUT_MS);
-            conn.setRequestProperty("Content-Type", "application/json; charset=utf-8");
-            conn.setDoOutput(true);
-            try (OutputStream os = conn.getOutputStream()) {
-                os.write(body.toString().getBytes(StandardCharsets.UTF_8));
-            }
-            int code = conn.getResponseCode();
-            InputStream is = (code >= 200 && code < 300) ? conn.getInputStream() : conn.getErrorStream();
-            String raw = readAll(is);
-            if (code < 200 || code >= 300) {
-                throw new IOException("Gemini HTTP " + code + ": " + extractError(raw));
-            }
-            return parseChatReply(raw);
-        } finally {
-            conn.disconnect();
-        }
+        return parseChatReply(postJson(apiKey, body));
     }
 
     @Override
@@ -160,30 +144,58 @@ public final class GeminiVisionProvider implements AiVisionProvider {
 
         JSONObject body = buildRequest(prompt, base64);
 
-        URL url = new URL(ENDPOINT + "?key=" + apiKey);
+        return parseText(postJson(apiKey, body));
+    }
+
+    /**
+     * POST a generateContent body and return the raw response JSON. Shared by
+     * both call paths here AND by CarAdvisorController's text-only call so
+     * key handling / retry behaviour can't drift between features.
+     *
+     * Retries exactly once (after a short backoff) on 429/5xx and read
+     * timeouts — those are transient on the free tier; everything else
+     * (400 bad request, 403 bad key) will fail identically on a retry, so we
+     * surface it immediately.
+     */
+    static String postJson(String apiKey, JSONObject body) throws Exception {
+        try {
+            return postJsonOnce(apiKey, body);
+        } catch (SocketTimeoutException | TransientApiException first) {
+            Thread.sleep(RETRY_BACKOFF_MS);
+            return postJsonOnce(apiKey, body);
+        }
+    }
+
+    private static String postJsonOnce(String apiKey, JSONObject body) throws Exception {
+        URL url = new URL(ENDPOINT);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         try {
             conn.setRequestMethod("POST");
             conn.setConnectTimeout(CONNECT_TIMEOUT_MS);
             conn.setReadTimeout(READ_TIMEOUT_MS);
             conn.setRequestProperty("Content-Type", "application/json; charset=utf-8");
+            // Key travels as a header, never in the URL — exception messages
+            // embed the URL and end up in the on-device diag log file.
+            conn.setRequestProperty("x-goog-api-key", apiKey);
             conn.setDoOutput(true);
-
             try (OutputStream os = conn.getOutputStream()) {
                 os.write(body.toString().getBytes(StandardCharsets.UTF_8));
             }
-
             int code = conn.getResponseCode();
             InputStream is = (code >= 200 && code < 300) ? conn.getInputStream() : conn.getErrorStream();
             String raw = readAll(is);
-
-            if (code < 200 || code >= 300) {
-                throw new IOException("Gemini HTTP " + code + ": " + extractError(raw));
-            }
-            return parseText(raw);
+            if (code >= 200 && code < 300) return raw;
+            String msg = "Gemini HTTP " + code + ": " + extractError(raw);
+            if (code == 429 || code >= 500) throw new TransientApiException(msg);
+            throw new IOException(msg);
         } finally {
             conn.disconnect();
         }
+    }
+
+    /** Marker for 429/5xx responses so postJson knows one retry is worthwhile. */
+    private static final class TransientApiException extends IOException {
+        TransientApiException(String msg) { super(msg); }
     }
 
     private static JSONObject buildRequest(String prompt, String base64Image) throws Exception {
@@ -260,8 +272,12 @@ public final class GeminiVisionProvider implements AiVisionProvider {
 
     /**
      * Build a Gemini {@code generateContent} request that:
-     *   1. Seeds the model with the original photo + a "system"-role user turn
-     *      containing the JSON estimate + the customer instructions.
+     *   1. Seeds the model with a "system"-role user turn containing the JSON
+     *      estimate + the customer instructions — plus the original photo, but
+     *      ONLY on the first turn. Re-uploading the base64 image with every
+     *      follow-up cost ~5 MB of mobile data per question; the estimate JSON
+     *      already captures what the model saw, so later turns just tell the
+     *      model the photo was provided earlier.
      *   2. Replays prior chat turns in Gemini's user/model interleaved format.
      *   3. Appends the new user question.
      *   4. Attaches the {@code google_search} tool so the model can fetch live
@@ -278,14 +294,26 @@ public final class GeminiVisionProvider implements AiVisionProvider {
         // Gemini requires "contents" to alternate user/model, and does not have a
         // separate system role in v1beta — folding this into the first user turn
         // is the documented pattern.
+        boolean firstTurn = history == null || history.isEmpty();
+        boolean hasImage = imageJpeg != null && imageJpeg.length > 0;
         JSONObject seed = new JSONObject();
         seed.put("role", "user");
         JSONArray seedParts = new JSONArray();
         JSONObject seedText = new JSONObject();
-        seedText.put("text", CHAT_SYSTEM_PROMPT + "\n\nESTIMATE:\n"
-                + (estimateJson == null ? "(no prior estimate)" : estimateJson));
+        StringBuilder seedMsg = new StringBuilder(CHAT_SYSTEM_PROMPT);
+        if (hasImage && !firstTurn) {
+            // The API is stateless, so on later turns the model never re-sees
+            // the photo — make that explicit so it leans on the estimate JSON
+            // instead of claiming no image was ever shared.
+            seedMsg.append("\n\nThe customer's damage photo was provided earlier "
+                    + "in this conversation and the estimate below was written "
+                    + "from it — rely on the estimate for the visual details.");
+        }
+        seedMsg.append("\n\nESTIMATE:\n")
+                .append(estimateJson == null ? "(no prior estimate)" : estimateJson);
+        seedText.put("text", seedMsg.toString());
         seedParts.put(seedText);
-        if (imageJpeg != null && imageJpeg.length > 0) {
+        if (hasImage && firstTurn) {
             JSONObject imgPart = new JSONObject();
             JSONObject inline = new JSONObject();
             inline.put("mime_type", "image/jpeg");
@@ -404,7 +432,9 @@ public final class GeminiVisionProvider implements AiVisionProvider {
         return new ChatReply(text, new ArrayList<>(urls));
     }
 
-    private static String extractError(String raw) {
+    // Package-private so other Gemini callers (CarAdvisorController) reuse the
+    // same 300-char cap instead of throwing unbounded error bodies into logs.
+    static String extractError(String raw) {
         try {
             JSONObject root = new JSONObject(raw);
             JSONObject err = root.optJSONObject("error");

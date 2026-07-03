@@ -89,28 +89,32 @@ public class FaultCodesController {
         result.setTextColor(Color.parseColor("#E0E0E0"));
         result.setText("Scanning " + module.label + "...\n(experimental — header switch on D-CAN)");
 
+        final Context appCtx = result.getContext().getApplicationContext();
         new Thread(() -> {
             try {
                 List<String> codes = obdManager.readModuleDtcs(module);
                 EventLogger.get().recordDtcs(module.name(), null, codes, null);
+                StringBuilder sb = new StringBuilder();
+                sb.append(module.label).append(" — ").append(codes.size()).append(" code(s)\n\n");
+                if (codes.isEmpty()) {
+                    sb.append("No codes returned. Either the module is clean or didn't respond.\n\n")
+                      .append("If didn't respond: check obd-diag.log for the raw UDS exchange.\n")
+                      .append("If you've never paired a module read before, the first attempt sometimes ")
+                      .append("times out — try once more.");
+                } else {
+                    sb.append("(BMW manufacturer codes — 4-hex form. Look up in BMHat / NewTIS.)\n\n");
+                    for (String c : codes) sb.append("  • ").append(c).append('\n');
+                }
+                final String text = sb.toString();
+                // Persist from the worker, not the guarded ui.post — a scan
+                // that finishes after the user navigated away must still land
+                // in Scan Reports.
+                ScanReportRepo.saveDtcScan(appCtx, "MODULE",
+                        module.label + " scan — " + codes.size() + " code(s)", null, text);
                 ui.post(() -> {
                     if (root == null) return;
-                    StringBuilder sb = new StringBuilder();
-                    sb.append(module.label).append(" — ").append(codes.size()).append(" code(s)\n\n");
-                    if (codes.isEmpty()) {
-                        sb.append("No codes returned. Either the module is clean or didn't respond.\n\n")
-                          .append("If didn't respond: check obd-diag.log for the raw UDS exchange.\n")
-                          .append("If you've never paired a module read before, the first attempt sometimes ")
-                          .append("times out — try once more.");
-                    } else {
-                        sb.append("(BMW manufacturer codes — 4-hex form. Look up in BMHat / NewTIS.)\n\n");
-                        for (String c : codes) sb.append("  • ").append(c).append('\n');
-                    }
-                    result.setText(sb.toString());
+                    result.setText(text);
                     setButtonsEnabled(true);
-                    ScanReportRepo.saveDtcScan(result.getContext(), "MODULE",
-                            module.label + " scan — " + codes.size() + " code(s)",
-                            null, sb.toString());
                 });
             } catch (Exception e) {
                 postError(result, module.label + " scan failed: " + e.getMessage());
@@ -147,6 +151,7 @@ public class FaultCodesController {
         result.setTextColor(Color.parseColor("#E0E0E0"));
         result.setText("Running full scan...\n(takes 10-30 s on slow adapters)");
 
+        final Context appCtx = result.getContext().getApplicationContext();
         new Thread(() -> {
             StringBuilder rpt = new StringBuilder();
             String verdict = "GREEN";
@@ -201,6 +206,33 @@ public class FaultCodesController {
                         ((MainActivity) activityCtx).setDtcCount(countForBadge));
             }
 
+            // Render the module section FIRST (into its own builder) because
+            // module faults escalate the verdict — the old code printed
+            // "VERDICT: GREEN" into the report before the loop below could
+            // flip it to AMBER, so body and title/color disagreed.
+            StringBuilder moduleSection = new StringBuilder();
+            int moduleResponded = 0, moduleFaults = 0;
+            moduleSection.append("\nMODULE SCAN (D-CAN):\n");
+            for (java.util.Map.Entry<BmwModule, java.util.List<String>> e : moduleCodes.entrySet()) {
+                BmwModule m = e.getKey();
+                java.util.List<String> codes = e.getValue();
+                if (codes == null) {
+                    moduleSection.append("  • ").append(m.label).append(" — no response (module may not be present)\n");
+                } else if (codes.isEmpty()) {
+                    moduleSection.append("  • ").append(m.label).append(" — no codes\n");
+                    moduleResponded++;
+                } else {
+                    moduleSection.append("  • ").append(m.label).append(" — ").append(codes.size()).append(" code(s):\n");
+                    for (String c : codes) moduleSection.append("        ").append(c).append('\n');
+                    moduleResponded++;
+                    moduleFaults += codes.size();
+                    if (!"RED".equals(verdict)) verdict = "AMBER";
+                }
+            }
+            moduleSection.append("\nModules that responded: ").append(moduleResponded)
+                    .append(" / ").append(moduleCodes.size())
+                    .append("   |   Module faults: ").append(moduleFaults).append('\n');
+
             // Render
             rpt.append("FULL SCAN — ").append(new java.util.Date()).append("\n\n");
             rpt.append("VERDICT: ").append(verdict).append("\n");
@@ -210,29 +242,7 @@ public class FaultCodesController {
             appendCodeList(rpt, "DME — STORED",    stored);
             appendCodeList(rpt, "DME — PENDING",   pending);
             appendCodeList(rpt, "DME — PERMANENT", permanent);
-
-            // Per-module scan results
-            int moduleResponded = 0, moduleFaults = 0;
-            rpt.append("\nMODULE SCAN (D-CAN):\n");
-            for (java.util.Map.Entry<BmwModule, java.util.List<String>> e : moduleCodes.entrySet()) {
-                BmwModule m = e.getKey();
-                java.util.List<String> codes = e.getValue();
-                if (codes == null) {
-                    rpt.append("  • ").append(m.label).append(" — no response (module may not be present)\n");
-                } else if (codes.isEmpty()) {
-                    rpt.append("  • ").append(m.label).append(" — no codes\n");
-                    moduleResponded++;
-                } else {
-                    rpt.append("  • ").append(m.label).append(" — ").append(codes.size()).append(" code(s):\n");
-                    for (String c : codes) rpt.append("        ").append(c).append('\n');
-                    moduleResponded++;
-                    moduleFaults += codes.size();
-                    verdict = "AMBER";
-                }
-            }
-            rpt.append("\nModules that responded: ").append(moduleResponded)
-                    .append(" / ").append(moduleCodes.size())
-                    .append("   |   Module faults: ").append(moduleFaults).append('\n');
+            rpt.append(moduleSection);
 
             if (freeze != null) {
                 rpt.append("\nFREEZE FRAME (at moment of stored DTC):\n");
@@ -258,13 +268,16 @@ public class FaultCodesController {
             final String reportText = rpt.toString();
             final String fVerdict = verdict;
             final String fVin = vin;
+            // Persist from the worker — a 10-30s scan that finishes after the
+            // user navigated away used to be silently dropped because the save
+            // lived inside the root==null guard.
+            ScanReportRepo.saveDtcScan(appCtx, "DTC_FULL",
+                    "Full Scan — " + fVerdict, fVin, reportText);
             ui.post(() -> {
                 if (root == null) return;
                 result.setText(reportText);
                 result.setTextColor(Color.parseColor(verdictColor(fVerdict)));
                 setButtonsEnabled(true);
-                ScanReportRepo.saveDtcScan(result.getContext(), "DTC_FULL",
-                        "Full Scan — " + fVerdict, fVin, reportText);
             });
         }, "FullScanThread").start();
     }
@@ -317,7 +330,12 @@ public class FaultCodesController {
         }
     }
 
-    public void detach() { root = null; }
+    public void detach() {
+        root = null;
+        // Drop the button refs too — the singleton controller otherwise pins
+        // the previous screen's whole view tree until the next attach.
+        allButtons = null;
+    }
 
     // ----- Mode 03 / 07 / 0A -----
 
@@ -327,6 +345,7 @@ public class FaultCodesController {
         result.setTextColor(Color.parseColor("#E0E0E0"));
         result.setText("Reading " + header + "...");
 
+        final Context appCtx = result.getContext().getApplicationContext();
         new Thread(() -> {
             try {
                 List<String> codes = obdManager.readDtcs(mode);
@@ -360,10 +379,14 @@ public class FaultCodesController {
                     setButtonsEnabled(true);
                     String kind = (mode == 3) ? "DTC_STORED"
                             : (mode == 7) ? "DTC_PENDING" : "DTC_PERMANENT";
-                    ScanReportRepo.saveDtcScan(result.getContext(), kind,
+                    // Save with app context — outlives the screen.
+                    ScanReportRepo.saveDtcScan(appCtx, kind,
                             header + " — " + codes.size() + " code(s)", null, sb.toString());
                 });
-            } catch (IOException e) {
+            } catch (Exception e) {
+                // Catch everything, not just IOException — a RuntimeException
+                // from parsing garbage adapter output used to kill this worker
+                // after setButtonsEnabled(false), leaving all 11 buttons dead.
                 postError(result, "Read failed: " + e.getMessage());
             }
         }, "DtcReadThread").start();
@@ -396,7 +419,7 @@ public class FaultCodesController {
                     result.setText(sb.toString());
                     setButtonsEnabled(true);
                 });
-            } catch (IOException e) {
+            } catch (Exception e) {
                 postError(result, "Freeze frame read failed: " + e.getMessage());
             }
         }, "FreezeFrameThread").start();
@@ -431,7 +454,7 @@ public class FaultCodesController {
                     result.setText(sb.toString());
                     setButtonsEnabled(true);
                 });
-            } catch (IOException e) {
+            } catch (Exception e) {
                 postError(result, "Readiness read failed: " + e.getMessage());
             }
         }, "ReadinessThread").start();
@@ -448,9 +471,9 @@ public class FaultCodesController {
         new Thread(() -> {
             String vin = null, calid = null, name = null;
             String err = null;
-            try { vin = obdManager.readVin(); } catch (IOException e) { err = "VIN: " + e.getMessage(); }
-            try { calid = obdManager.readMode09Ascii(0x04); } catch (IOException e) { /* tolerated */ }
-            try { name  = obdManager.readMode09Ascii(0x0A); } catch (IOException e) { /* tolerated */ }
+            try { vin = obdManager.readVin(); } catch (Exception e) { err = "VIN: " + e.getMessage(); }
+            try { calid = obdManager.readMode09Ascii(0x04); } catch (Exception e) { /* tolerated */ }
+            try { name  = obdManager.readMode09Ascii(0x0A); } catch (Exception e) { /* tolerated */ }
 
             final String fVin = vin, fCal = calid, fName = name, fErr = err;
             ui.post(() -> {
@@ -501,7 +524,7 @@ public class FaultCodesController {
                     }
                     setButtonsEnabled(true);
                 });
-            } catch (IOException e) {
+            } catch (Exception e) {
                 postError(result, "Clear failed: " + e.getMessage());
             }
         }, "DtcClearThread").start();

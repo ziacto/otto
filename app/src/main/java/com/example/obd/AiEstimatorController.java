@@ -7,6 +7,8 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.graphics.Matrix;
+import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
@@ -41,11 +43,19 @@ public class AiEstimatorController {
 
     private static final int MAX_IMAGE_BYTES = 4 * 1024 * 1024; // 4 MB after compress
     private static final int MAX_DIM = 1280;                    // long edge target
+    // The on-screen thumbnail needs far fewer pixels than the upload — keeping
+    // the 1280px ARGB bitmap alive just for a small ImageView wastes ~5 MB.
+    private static final int PREVIEW_DIM = 640;
 
     private View root;
     private Activity activity;
     private ObdManagerFast obdManager;
     private final Handler ui = new Handler(Looper.getMainLooper());
+    // Bumped on every attach AND detach. Async work snapshots the value at
+    // start; a mismatch at post time means the views it captured belong to a
+    // layout that was detached (and possibly replaced by a re-attach), so the
+    // UI update must be dropped instead of rendered into invisible views.
+    private int attachGeneration;
     private Uri selectedUri;
     private byte[] selectedJpeg;
     private String lastVinSeen;
@@ -57,6 +67,7 @@ public class AiEstimatorController {
         this.root = view;
         this.activity = act;
         this.obdManager = obd;
+        attachGeneration++;
 
         Button btnPick = view.findViewById(R.id.btnPickPhoto);
         Button btnAnalyze = view.findViewById(R.id.btnAnalyze);
@@ -102,6 +113,7 @@ public class AiEstimatorController {
 
     public void detach() {
         ui.removeCallbacksAndMessages(null);
+        attachGeneration++;
         root = null;
         activity = null;
         obdManager = null;
@@ -128,6 +140,7 @@ public class AiEstimatorController {
         // null'd-out fields after a fast detach (memory leak / NPE guard).
         final Activity act = activity;
         final ObdManagerFast obd = obdManager;
+        final int gen = attachGeneration;
         new Thread(() -> {
             String vin = null;
             try {
@@ -181,7 +194,9 @@ public class AiEstimatorController {
             final String finalSub = badgeSub;
 
             ui.post(() -> {
-                if (root == null) return;
+                // Generation check: etContext/vinChip came from the view tree
+                // that existed at attach time — stale after detach→re-attach.
+                if (root == null || gen != attachGeneration) return;
                 if (etContext != null && etContext.getText().toString().trim().isEmpty()) {
                     etContext.setText(finalContext);
                 }
@@ -205,6 +220,7 @@ public class AiEstimatorController {
         // Snapshot the activity ref — detach() can null it while this thread runs.
         final Activity act = activity;
         if (act == null) return;
+        final int gen = attachGeneration;
         new Thread(() -> {
             try {
                 ContentResolver cr = act.getContentResolver();
@@ -214,9 +230,31 @@ public class AiEstimatorController {
                 try (InputStream is = cr.openInputStream(uri)) {
                     BitmapFactory.decodeStream(is, null, boundsOpts);
                 }
+                // Sample to the power of two that keeps the long edge AT OR
+                // ABOVE the target, then scale down exactly afterwards.
+                // Sampling past the target loses real detail — a 2600px photo
+                // sampled at 4 lands at 650px, half what the model should see.
                 int sample = 1;
                 int longEdge = Math.max(boundsOpts.outWidth, boundsOpts.outHeight);
-                while (longEdge / sample > MAX_DIM) sample *= 2;
+                while (longEdge / (sample * 2) >= MAX_DIM) sample *= 2;
+
+                // Camera photos store rotation as an EXIF tag, not in the
+                // pixels — read it from a fresh stream (content streams can't
+                // rewind) before decoding, or portrait shots upload sideways.
+                int rotationDeg = 0;
+                try (InputStream is = cr.openInputStream(uri)) {
+                    if (is != null) {
+                        ExifInterface exif = new ExifInterface(is);
+                        int o = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION,
+                                ExifInterface.ORIENTATION_NORMAL);
+                        if (o == ExifInterface.ORIENTATION_ROTATE_90) rotationDeg = 90;
+                        else if (o == ExifInterface.ORIENTATION_ROTATE_180) rotationDeg = 180;
+                        else if (o == ExifInterface.ORIENTATION_ROTATE_270) rotationDeg = 270;
+                    }
+                } catch (Exception ignored) {
+                    // Some providers strip EXIF or serve streams the parser
+                    // rejects — treat as "no rotation" rather than failing the pick.
+                }
 
                 BitmapFactory.Options opts = new BitmapFactory.Options();
                 opts.inSampleSize = sample;
@@ -225,6 +263,29 @@ public class AiEstimatorController {
                     bmp = BitmapFactory.decodeStream(is, null, opts);
                 }
                 if (bmp == null) throw new IllegalStateException("Could not decode image");
+
+                if (rotationDeg != 0) {
+                    Matrix m = new Matrix();
+                    m.postRotate(rotationDeg);
+                    Bitmap rotated = Bitmap.createBitmap(bmp, 0, 0,
+                            bmp.getWidth(), bmp.getHeight(), m, true);
+                    if (rotated != bmp) bmp.recycle();
+                    bmp = rotated;
+                }
+
+                // Exact resize to the target — the sampling above only got us
+                // to the nearest power of two at-or-above it.
+                int w = bmp.getWidth();
+                int h = bmp.getHeight();
+                int longNow = Math.max(w, h);
+                if (longNow > MAX_DIM) {
+                    float scale = MAX_DIM / (float) longNow;
+                    Bitmap scaled = Bitmap.createScaledBitmap(bmp,
+                            Math.max(1, Math.round(w * scale)),
+                            Math.max(1, Math.round(h * scale)), true);
+                    if (scaled != bmp) bmp.recycle();
+                    bmp = scaled;
+                }
 
                 // Compress to JPEG, dropping quality until under MAX_IMAGE_BYTES
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -236,12 +297,30 @@ public class AiEstimatorController {
                     quality -= 10;
                 }
                 byte[] jpeg = baos.toByteArray();
-                Bitmap previewBmp = bmp;
 
+                // The upload bytes exist now, so the full-resolution bitmap has
+                // done its job — keep only a small copy for the ImageView and
+                // give the rest of the heap back.
+                int pLong = Math.max(bmp.getWidth(), bmp.getHeight());
+                Bitmap previewBmp = bmp;
+                if (pLong > PREVIEW_DIM) {
+                    float pScale = PREVIEW_DIM / (float) pLong;
+                    previewBmp = Bitmap.createScaledBitmap(bmp,
+                            Math.max(1, Math.round(bmp.getWidth() * pScale)),
+                            Math.max(1, Math.round(bmp.getHeight() * pScale)), true);
+                    if (previewBmp != bmp) bmp.recycle();
+                }
+
+                final Bitmap finalPreview = previewBmp;
                 ui.post(() -> {
-                    if (root == null) return;
+                    if (root == null || gen != attachGeneration) {
+                        // Screen detached (or replaced) since the pick — no
+                        // view will ever show this bitmap, so free it now.
+                        finalPreview.recycle();
+                        return;
+                    }
                     selectedJpeg = jpeg;
-                    preview.setImageBitmap(previewBmp);
+                    preview.setImageBitmap(finalPreview);
                     btnAnalyze.setEnabled(true);
                 });
             } catch (Exception e) {
@@ -249,7 +328,7 @@ public class AiEstimatorController {
                         "AI photo decode failed: " + e.getMessage());
                 ui.post(() -> {
                     Activity a = activity;
-                    if (a == null) return;
+                    if (a == null || gen != attachGeneration) return;
                     Toast.makeText(a, "Could not load image: " + e.getMessage(),
                             Toast.LENGTH_LONG).show();
                 });
@@ -285,8 +364,14 @@ public class AiEstimatorController {
         // Snapshot the JPEG bytes — detach() can null selectedJpeg mid-flight.
         final byte[] jpegSnapshot = selectedJpeg;
         if (jpegSnapshot == null) return;
+        // Snapshots for the persistence path: the DB save must survive a
+        // detach, so it can't read fields that detach() nulls out.
+        final Activity act = activity;
+        final String vinSnapshot = lastVinSeen;
+        final int gen = attachGeneration;
         new Thread(() -> {
             String result;
+            JSONObject parsed = null;
             boolean ok;
             try {
                 AiVisionProvider provider = new GeminiVisionProvider(apiKey);
@@ -294,6 +379,20 @@ public class AiEstimatorController {
                 ok = true;
                 ObdLogger.get().log(ObdLogger.Level.INFO,
                         "AI estimate OK (" + result.length() + " chars)");
+                try {
+                    parsed = new JSONObject(result);
+                } catch (Exception parseErr) {
+                    // Fallback path below shows the raw text instead.
+                    ObdLogger.get().log(ObdLogger.Level.ERROR,
+                            "AI JSON parse failed: " + parseErr.getMessage());
+                }
+                // Persist the report even if the screen has since detached —
+                // the API call already happened; losing the result to a
+                // navigation change would waste it. saveAiEstimate uses the
+                // application context internally, so the snapshot is safe.
+                if (parsed != null && act != null) {
+                    ScanReportRepo.saveAiEstimate(act, vinSnapshot, parsed);
+                }
             } catch (Exception e) {
                 result = "Analysis failed: " + e.getMessage();
                 ok = false;
@@ -301,9 +400,12 @@ public class AiEstimatorController {
                         "AI estimate failed: " + e.getMessage());
             }
             final String finalResult = result;
+            final JSONObject finalParsed = parsed;
             final boolean finalOk = ok;
             ui.post(() -> {
-                if (root == null) return;
+                // Generation check: resultCard/progress/tvResult belong to the
+                // view tree captured at click time — stale after re-attach.
+                if (root == null || gen != attachGeneration) return;
                 progress.setVisibility(View.GONE);
                 btnAnalyze.setEnabled(true);
                 if (!finalOk) {
@@ -316,23 +418,16 @@ public class AiEstimatorController {
                     }
                     return;
                 }
-                try {
-                    JSONObject json = new JSONObject(finalResult);
-                    renderStructured(json);
-                    Activity a = activity;
-                    if (a != null) {
-                        ScanReportRepo.saveAiEstimate(a, lastVinSeen, json);
-                    }
+                if (finalParsed != null) {
+                    renderStructured(finalParsed);
                     // Chat is scoped to the current estimate. New estimate =
                     // fresh conversation, otherwise questions inherit stale
                     // context from a previous car.
                     lastEstimateJson = finalResult;
                     chatHistory.clear();
                     showChatCard();
-                } catch (Exception parseErr) {
-                    // Fallback: show raw text if JSON parse fails
-                    ObdLogger.get().log(ObdLogger.Level.ERROR,
-                            "AI JSON parse failed: " + parseErr.getMessage());
+                } else {
+                    // Fallback: show raw text if JSON parse failed
                     tvResult.setVisibility(View.VISIBLE);
                     tvResult.setText(finalResult);
                 }
@@ -546,6 +641,7 @@ public class AiEstimatorController {
         final String apiKey = key;
         final String estimateJson = lastEstimateJson;
         final byte[] image = selectedJpeg;
+        final int gen = attachGeneration;
         final List<AiVisionProvider.ChatTurn> historySnapshot = new ArrayList<>(chatHistory);
         // Drop the just-appended user turn from history — the provider adds it
         // as the final "question" argument, so keeping it in history would
@@ -571,7 +667,10 @@ public class AiEstimatorController {
             }
             final AiVisionProvider.ChatReply finalReply = reply;
             ui.post(() -> {
-                if (root == null) return;
+                // Generation check: `pending` lives in the old view tree after
+                // a detach→re-attach, and chatHistory was cleared on detach —
+                // appending the reply would corrupt the fresh conversation.
+                if (root == null || gen != attachGeneration) return;
                 // Swap the "Thinking…" bubble with the real answer + source links.
                 pending.setText(finalReply.text);
                 LinearLayout container = (LinearLayout) pending.getParent();

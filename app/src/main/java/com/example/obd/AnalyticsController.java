@@ -140,14 +140,14 @@ public class AnalyticsController {
         });
         chart.getAxisLeft().setTextColor(Color.GRAY);
         chart.getAxisRight().setEnabled(false);
-        chart.setNoDataText("Aufnahme starten und fahren");
+        chart.setNoDataText("Start recording and drive");
         chart.setNoDataTextColor(Color.GRAY);
     }
 
     private void refreshToggleButton() {
         if (btnToggle == null) return;
         boolean rec = DataLogger.getInstance().isRecording();
-        btnToggle.setText(rec ? "Stop" : "Aufnahme starten");
+        btnToggle.setText(rec ? "Stop" : "Start recording");
         btnToggle.setBackgroundTintList(android.content.res.ColorStateList.valueOf(
                 rec ? Color.parseColor("#F44336") : Color.parseColor("#03DAC5")));
     }

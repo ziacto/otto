@@ -59,6 +59,21 @@ public class GaugeDashboardController {
     private WarningLightsView warningLights;
     private View cardBattery, cardOdometer;
 
+    // Staleness sweep — same bug class the tile dashboard fixed: after a
+    // socket drop the gauges froze on the last value forever, indistinguishable
+    // from live data. Stale gauges are dimmed instead of left crisp.
+    private final java.util.Map<String, Long> lastSampleMs = new java.util.HashMap<>();
+    private static final long STALE_MS = 6_000L;
+    private static final float STALE_ALPHA = 0.35f;
+    private final Runnable stalenessCheck = new Runnable() {
+        @Override public void run() {
+            if (root == null) return;
+            sweepStaleGauges();
+            updateStatus();
+            ui.postDelayed(this, 1500L);
+        }
+    };
+
     public void attach(View view, ObdManagerFast manager) {
         this.root = view;
         this.ctx = view.getContext();
@@ -74,6 +89,42 @@ public class GaugeDashboardController {
 
         updateOdometerDisplay();
         updateStatus();
+        lastSampleMs.clear();
+        ui.postDelayed(stalenessCheck, 1500L);
+    }
+
+    /** View that renders each polled sensor — used by the staleness sweep. */
+    private View gaugeFor(String name) {
+        switch (name) {
+            case "RPM":               return gRpm;
+            case "Vehicle Speed":     return gSpeed;
+            case "Engine Load":       return gLoad;
+            case "Throttle Position": return gThrottle;
+            case "Coolant Temp":      return gCoolant;
+            case "Oil Temp":          return gOil;
+            case "Intake Air Temp":   return gIntake;
+            case "Fuel Level":        return gFuel;
+            case "Battery Voltage":   return cardBattery != null ? cardBattery : tvBattery;
+            default:                  return null;
+        }
+    }
+
+    private static final String[] POLLED_SENSORS = {
+            "RPM", "Vehicle Speed", "Engine Load", "Throttle Position",
+            "Coolant Temp", "Oil Temp", "Intake Air Temp", "Fuel Level",
+            "Battery Voltage"
+    };
+
+    private void sweepStaleGauges() {
+        long now = System.currentTimeMillis();
+        for (String name : POLLED_SENSORS) {
+            View v = gaugeFor(name);
+            if (v == null) continue;
+            Long last = lastSampleMs.get(name);
+            boolean stale = (last == null) || (now - last > STALE_MS);
+            float target = stale ? STALE_ALPHA : 1f;
+            if (v.getAlpha() != target) v.setAlpha(target);
+        }
     }
 
     private void bindViews() {
@@ -290,10 +341,17 @@ public class GaugeDashboardController {
                     for (String c : dsc) sb.append("  • ").append(c).append('\n');
                     totalCodes += dsc.size();
                 }
-                ui.post(() -> warningLights.update(WarningLightsView.Light.DSC,
-                        dsc.isEmpty() ? WarningLightsView.State.OK : WarningLightsView.State.FAULT,
-                        dsc.isEmpty() ? "" : String.valueOf(dsc.size()),
-                        dsc.isEmpty() ? "No DSC faults" : "DSC fault codes:\n  " + String.join("\n  ", dsc)));
+                // Null-guard inside the post: the multi-module scan takes
+                // seconds and detach() nulls warningLights — navigating away
+                // mid-scan used to NPE-crash on the main thread here.
+                ui.post(() -> {
+                    WarningLightsView wl = warningLights;
+                    if (wl == null) return;
+                    wl.update(WarningLightsView.Light.DSC,
+                            dsc.isEmpty() ? WarningLightsView.State.OK : WarningLightsView.State.FAULT,
+                            dsc.isEmpty() ? "" : String.valueOf(dsc.size()),
+                            dsc.isEmpty() ? "No DSC faults" : "DSC fault codes:\n  " + String.join("\n  ", dsc));
+                });
 
                 java.util.List<String> egs = safeModuleScan(BmwModule.EGS);
                 if (!egs.isEmpty()) {
@@ -301,10 +359,14 @@ public class GaugeDashboardController {
                     for (String c : egs) sb.append("  • ").append(c).append('\n');
                     totalCodes += egs.size();
                 }
-                ui.post(() -> warningLights.update(WarningLightsView.Light.EGS,
-                        egs.isEmpty() ? WarningLightsView.State.OK : WarningLightsView.State.FAULT,
-                        egs.isEmpty() ? "" : String.valueOf(egs.size()),
-                        egs.isEmpty() ? "No EGS faults" : "EGS fault codes:\n  " + String.join("\n  ", egs)));
+                ui.post(() -> {
+                    WarningLightsView wl = warningLights;
+                    if (wl == null) return;
+                    wl.update(WarningLightsView.Light.EGS,
+                            egs.isEmpty() ? WarningLightsView.State.OK : WarningLightsView.State.FAULT,
+                            egs.isEmpty() ? "" : String.valueOf(egs.size()),
+                            egs.isEmpty() ? "No EGS faults" : "EGS fault codes:\n  " + String.join("\n  ", egs));
+                });
 
                 final int total = totalCodes;
                 final String text = total == 0 ? "✓ No fault codes in DME/DSC/EGS" : sb.toString();
@@ -384,6 +446,9 @@ public class GaugeDashboardController {
     /** Called from MainActivity.updateUI on every polled value. */
     public void onValue(String name, double value) {
         if (root == null) return;
+        lastSampleMs.put(name, System.currentTimeMillis());
+        View gv = gaugeFor(name);
+        if (gv != null && gv.getAlpha() != 1f) gv.setAlpha(1f);
         switch (name) {
             case "RPM":               if (gRpm != null) gRpm.setValue((float) value); break;
             case "Vehicle Speed":
@@ -492,6 +557,7 @@ public class GaugeDashboardController {
     }
 
     public void detach() {
+        ui.removeCallbacks(stalenessCheck);
         root = null;
         ctx = null;
         activity = null;

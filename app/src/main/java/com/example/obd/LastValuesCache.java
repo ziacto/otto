@@ -39,8 +39,11 @@ public final class LastValuesCache {
 
     private final SharedPreferences prefs;
     private final Map<String, Double> cache = new HashMap<>();
-    private volatile long lastPersistMs = 0L;
-    private volatile boolean dirty = false;
+    // Both guarded by the cache monitor — check-then-act on them from concurrent
+    // record() calls must be atomic or two threads persist at once / a sample
+    // recorded during a persist loses its dirty mark.
+    private long lastPersistMs = 0L;
+    private boolean dirty = false;
 
     private LastValuesCache(Context appCtx) {
         this.prefs = appCtx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
@@ -50,16 +53,35 @@ public final class LastValuesCache {
     /** Record a fresh reading; called from MainActivity.onValue on every sample. */
     public void record(String name, double value) {
         if (name == null || Double.isNaN(value) || Double.isInfinite(value)) return;
+        Map<String, Double> snap = null;
         synchronized (cache) {
             cache.put(name, value);
+            dirty = true;
+            long now = System.currentTimeMillis();
+            if (now - lastPersistMs > PERSIST_INTERVAL_MS) {
+                lastPersistMs = now;
+                dirty = false;
+                snap = new HashMap<>(cache);
+            }
         }
-        dirty = true;
-        long now = System.currentTimeMillis();
-        if (now - lastPersistMs > PERSIST_INTERVAL_MS) {
-            lastPersistMs = now;
-            // Persist on the SharedPreferences async writer thread; we don't block.
-            persistAsync();
+        // Persist on the SharedPreferences async writer thread; we don't block.
+        if (snap != null) persist(snap);
+    }
+
+    /**
+     * Persist any values recorded since the last throttled write. No-op when
+     * nothing is pending. Call on disconnect so the final few seconds of
+     * readings survive process death.
+     */
+    public void flush() {
+        Map<String, Double> snap;
+        synchronized (cache) {
+            if (!dirty) return;
+            dirty = false;
+            lastPersistMs = System.currentTimeMillis();
+            snap = new HashMap<>(cache);
         }
+        persist(snap);
     }
 
     /** Last known value for sensor, or {@code Double.NaN} if none. */
@@ -81,17 +103,14 @@ public final class LastValuesCache {
     public void clear() {
         synchronized (cache) {
             cache.clear();
+            lastPersistMs = 0L;
+            dirty = false;
         }
         prefs.edit().clear().apply();
-        lastPersistMs = 0L;
-        dirty = false;
     }
 
-    private void persistAsync() {
-        Map<String, Double> snap;
-        synchronized (cache) {
-            snap = new HashMap<>(cache);
-        }
+    /** Write the given snapshot to prefs. apply() is async — never blocks the caller. */
+    private void persist(Map<String, Double> snap) {
         SharedPreferences.Editor ed = prefs.edit();
         long ts = System.currentTimeMillis();
         for (Map.Entry<String, Double> e : snap.entrySet()) {
@@ -99,7 +118,6 @@ public final class LastValuesCache {
         }
         ed.putLong(KEY_TS_PREFIX + "saved", ts);
         ed.apply(); // async — does not block
-        dirty = false;
     }
 
     private void loadFromDisk() {

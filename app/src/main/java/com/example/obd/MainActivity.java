@@ -49,23 +49,40 @@ public class MainActivity extends AppCompatActivity {
     private final CarAdvisorController carAdvisorController = new CarAdvisorController();
     private final ScanReportsController scanReportsController = new ScanReportsController();
     private ConnectFlowController connectFlowController;
-    private boolean connectFlowActive = false;
-    private boolean analyticsActive = false;
-    private boolean sprintActive = false;
-    private boolean faultCodesActive = false;
-    private boolean debugLogActive = false;
-    private boolean dashboardActive = false;
-    private boolean sensorsActive = false;
-    private boolean garageActive = false;
-    private boolean liveDataActive = false;
-    private boolean knowledgeActive = false;
-    private boolean serviceActive = false;
-    private boolean gaugeDashActive = false;
-    private boolean hudDashActive = false;
-    private boolean odometerActive = false;
-    private boolean aiEstimatorActive = false;
-    private boolean carAdvisorActive = false;
-    private boolean scanReportsActive = false;
+
+    // Single-active-screen bookkeeping. Exactly one controller is attached at
+    // a time, so one (screenId, detach) pair replaces the 17 parallel booleans
+    // whose hand-copied detach sweeps kept drifting apart — the nav listener's
+    // copy omitted the connect flow, which permanently killed the Connect
+    // button after a single drawer navigation.
+    private static final int SCREEN_NONE = 0;
+    private static final int SCREEN_CONNECT_FLOW = -2; // not a drawer item, needs its own id
+    private int activeScreenId = SCREEN_NONE;
+    private Runnable activeDetach = null;
+    // Attaches are posted (they need the view laid out); the generation stamp
+    // drops a posted attach that a faster second navigation has superseded,
+    // so a controller can't end up attached to an orphaned view.
+    private int attachGeneration = 0;
+
+    /** Detach whatever screen is active and cancel any not-yet-run posted attach. */
+    private void detachActiveController() {
+        attachGeneration++;
+        Runnable d = activeDetach;
+        activeDetach = null;
+        activeScreenId = SCREEN_NONE;
+        if (d != null) d.run();
+    }
+
+    /** Mark {@code screenId} active and run {@code attach} once {@code root} is laid out. */
+    private void setActiveScreen(int screenId, View root, Consumer<View> attach, Runnable detach) {
+        activeScreenId = screenId;
+        activeDetach = detach;
+        final int gen = ++attachGeneration;
+        root.post(() -> {
+            if (gen != attachGeneration) return; // superseded by a later navigation
+            attach.accept(root);
+        });
+    }
 
     /**
      * Single-shot image picker used by AiEstimatorController. ActivityResult
@@ -80,8 +97,11 @@ public class MainActivity extends AppCompatActivity {
     private TextView connectionPill;
     private TextView dtcChip;
     private TextView thermalChip;
-    // Latest thermal readings used to drive the status chip — kept on the UI thread.
-    private double lastCoolant = Double.NaN, lastOil = Double.NaN;
+    // Latest thermal readings used to drive the status chip. Written on the
+    // poll thread (onValue runs there before its runOnUiThread hop), read on
+    // the UI thread by updateConnectionBanner — hence volatile.
+    private volatile double lastCoolant = Double.NaN;
+    private volatile double lastOil = Double.NaN;
     private final Handler connStateHandler = new Handler(Looper.getMainLooper());
     private final Runnable connStateTick = new Runnable() {
         @Override public void run() {
@@ -90,76 +110,8 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    public enum PollGroup {
-        // 730li dashboard: NA inline-6, no boost. Covers the live readings most owners care about.
-        GROUP_DASHBOARD      (500,    Arrays.asList(
-                new RpmCommand(), new SpeedCommand(),
-                new CoolantTempCommand(), new OilTempCommand(),
-                new ThrottlePositionCommand(), new EngineLoadCommand(),
-                new BatteryVoltageCommand(), new FuelLevelCommand(),
-                new MassAirFlowCommand(), new IntakeAirTempCommand(),
-                new MilStatusCommand())),
-
-        // HUD dashboard: extended sensor set (gear estimation, lambda, fuel trims, timing)
-        GROUP_HUD_DASHBOARD  (700,    Arrays.asList(
-                new RpmCommand(), new SpeedCommand(),
-                new CoolantTempCommand(), new OilTempCommand(),
-                new ThrottlePositionCommand(), new EngineLoadCommand(),
-                new BatteryVoltageCommand(), new FuelLevelCommand(),
-                new MassAirFlowCommand(), new IntakeAirTempCommand(),
-                new MilStatusCommand(), new TimingAdvanceCommand(),
-                new ActualEngineTorqueCommand(), new LambdaCommand(),
-                new ShortTermFuelTrimCommand(), new LongTermFuelTrimCommand(),
-                new AmbientAirTempCommand())),
-
-        // Live Data browser groups — narrow command sets per car system so the
-        // poll loop stays under ~2s per cycle on slow ELM clones.
-        GROUP_LIVE_POWERTRAIN (700, Arrays.asList(
-                new RpmCommand(), new SpeedCommand(), new ThrottlePositionCommand(),
-                new EngineLoadCommand(), new RelativeThrottlePositionCommand(),
-                new AcceleratorPedalPositionCommand(), new ActualEngineTorqueCommand(),
-                new DriverDemandTorqueCommand(), new TimingAdvanceCommand())),
-        GROUP_LIVE_THERMAL    (1500, Arrays.asList(
-                new CoolantTempCommand(), new OilTempCommand(),
-                new IntakeAirTempCommand(), new ChargeAirTemperatureCommand(),
-                new AmbientAirTempCommand())),
-        GROUP_LIVE_FUEL       (1000, Arrays.asList(
-                new MassAirFlowCommand(), new FuelLevelCommand(), new FuelPressureCommand(),
-                new FuelConsumptionCommand(), new LambdaCommand(), new CommandedLambdaCommand(),
-                new ShortTermFuelTrimCommand(), new LongTermFuelTrimCommand(),
-                new FuelInjectionTimingCommand())),
-        GROUP_LIVE_ELECTRICAL (2000, Arrays.asList(
-                new BatteryVoltageCommand(), new ControlModuleVoltageCommand(),
-                new EngineRunTimeCommand())),
-        GROUP_LIVE_PERFORMANCE(1000, Arrays.asList(
-                new RpmCommand(), new SpeedCommand(), new BoostPressureCommand(),
-                new BarometricPressureCommand(), new EngineLoadCommand(),
-                new ActualEngineTorqueCommand(), new TimingAdvanceCommand(),
-                new EngineRunTimeCommand())),
-        GROUP_LIVE_EMISSIONS  (2000, Arrays.asList(
-                new O2SensorCommand(), new LambdaCommand(),
-                new ShortTermFuelTrimCommand(), new LongTermFuelTrimCommand())),
-
-        // analytics: 10 cmds × ~400ms adapter latency ≈ 4s per cycle, plus this sleep
-        GROUP_ANALYTICS      (1000,   Arrays.asList(
-                new RpmCommand(), new SpeedCommand(), new BoostPressureCommand(),
-                new ThrottlePositionCommand(), new EngineLoadCommand(),
-                new MassAirFlowCommand(), new LambdaCommand(),
-                new CoolantTempCommand(), new IntakeAirTempCommand(),
-                new TimingAdvanceCommand())),
-        // sprint: tight loop on speed only for the 0-100 timer
-        GROUP_SPRINT         (200,    List.of(new SpeedCommand()));
-
-        private final int intervalMs;
-        private final List<ObdCommand> sensors;
-        PollGroup(int intervalMs, List<ObdCommand> sensors) {
-            this.intervalMs = intervalMs;
-            this.sensors = sensors;
-        }
-        public int getIntervalMs() { return intervalMs; }
-        public List<ObdCommand> getSensors() { return sensors; }
-    }
-
+    // Poll-group definitions live in PollGroup.java so the transport layer can
+    // reference them without depending on this Activity class.
     private PollGroup currentGroup = PollGroup.GROUP_DASHBOARD;
 
     private void updateConnectMenuTitle(MenuItem item) {
@@ -237,80 +189,7 @@ public class MainActivity extends AppCompatActivity {
         ObdService.bind(bluetoothHelper, obdManager);
         ObdService.startIfNeeded(this);
 
-        // Debug: allow triggering the self-test straight from `adb shell am start`
-        // via `--es action selftest`. Keeps the QA loop scriptable without
-        // needing to poke the drawer manually.
-        String debugAction = getIntent() == null ? null : getIntent().getStringExtra("action");
-        if ("selftest".equals(debugAction)) {
-            new Thread(() -> {
-                SelfTestRunner.Report r = SelfTestRunner.run(this);
-                ObdLogger.get().log(ObdLogger.Level.INFO,
-                        "SELFTEST RESULT " + (r.allPassed ? "PASS" : "FAIL"));
-                ObdLogger.get().log(ObdLogger.Level.INFO, "SELFTEST REPORT:\n" + r.text);
-            }, "SelfTestFromIntent").start();
-        } else if ("simulator".equals(debugAction)) {
-            new Thread(() -> {
-                try { obdManager.connectSimulator(); }
-                catch (Exception e) {
-                    ObdLogger.get().log(ObdLogger.Level.ERROR, "Sim boot failed: " + e);
-                }
-            }, "SimBootFromIntent").start();
-        } else if ("fuel_probe".equals(debugAction)) {
-            // Walk BMW UDS candidate DIDs for fuel level. Writes each raw
-            // response + decoded value to obd-diag.log so we can see which
-            // DID (if any) the user's DME actually answers.
-            new Thread(() -> {
-                FuelLevelProbe.Result r = FuelLevelProbe.run(this, obdManager);
-                ObdLogger.get().log(ObdLogger.Level.INFO,
-                        "FUEL_PROBE " + (r.bestMatch != null ? "PASS" : "FAIL")
-                                + "\n" + r.report);
-            }, "FuelProbe").start();
-        } else if ("ai_chat_test".equals(debugAction)) {
-            // Dry-run: exercise the AI chat + Google Search grounding wire
-            // end-to-end without needing to pick a photo, tap through the
-            // estimator UI, or type a question. Bypasses vision entirely by
-            // passing a canned estimate JSON. The response goes to obd-diag.log.
-            String question = getIntent().getStringExtra("q");
-            if (question == null || question.isEmpty()) {
-                question = "How much does an OEM BMW E65 water pump cost in Deira, Dubai, and which suppliers stock it?";
-            }
-            final String finalQuestion = question;
-            new Thread(() -> {
-                String apiKey = AiSettings.getEffectiveKey(this);
-                if (apiKey == null || apiKey.isEmpty()) {
-                    ObdLogger.get().log(ObdLogger.Level.ERROR, "AI_CHAT_TEST: no API key configured");
-                    return;
-                }
-                String fakeEstimate = "{"
-                        + "\"identified_part\":\"Water pump (electric, BMW E65 730li N52)\","
-                        + "\"confidence\":\"high\","
-                        + "\"severity\":\"Drive carefully\","
-                        + "\"summary\":\"Coolant leak from the water pump housing. On the N52 engine the pump is electric, mounted on the front timing cover. Common failure around 120-150k km due to internal impeller cracking.\","
-                        + "\"parts\":[{\"name\":\"Electric water pump\",\"oem_number\":\"11517586925\",\"price_aed_low\":900,\"price_aed_high\":1600}]"
-                        + "}";
-                ObdLogger.get().log(ObdLogger.Level.INFO,
-                        "AI_CHAT_TEST start — question: " + finalQuestion);
-                try {
-                    GeminiVisionProvider provider = new GeminiVisionProvider(apiKey);
-                    AiVisionProvider.ChatReply reply = provider.chatFollowup(
-                            fakeEstimate, null,
-                            new java.util.ArrayList<AiVisionProvider.ChatTurn>(),
-                            finalQuestion);
-                    ObdLogger.get().log(ObdLogger.Level.INFO,
-                            "AI_CHAT_TEST reply (" + reply.text.length() + " chars, "
-                                    + reply.sourceUrls.size() + " sources):");
-                    ObdLogger.get().log(ObdLogger.Level.INFO, reply.text);
-                    for (String u : reply.sourceUrls) {
-                        ObdLogger.get().log(ObdLogger.Level.INFO, "  source: " + u);
-                    }
-                    ObdLogger.get().log(ObdLogger.Level.INFO,
-                            "AI_CHAT_TEST DONE " + (reply.text.length() > 0 ? "PASS" : "FAIL"));
-                } catch (Exception e) {
-                    ObdLogger.get().log(ObdLogger.Level.ERROR,
-                            "AI_CHAT_TEST failed: " + e.getMessage());
-                }
-            }, "AiChatTest").start();
-        }
+        handleDebugIntent(getIntent());
 
         // On first launch (no previous content), show the Welcome screen by default
         // so the user has a clear Connect button instead of a blank container.
@@ -356,23 +235,14 @@ public class MainActivity extends AppCompatActivity {
             int id = item.getItemId();
             drawerLayout.closeDrawer(navigationView);
 
-            // Detach any active special controllers
-            if (analyticsActive) { analyticsController.detach(); analyticsActive = false; }
-            if (sprintActive) { sprintController.detach(); sprintActive = false; }
-            if (faultCodesActive) { faultCodesController.detach(); faultCodesActive = false; }
-            if (debugLogActive) { debugLogController.detach(); debugLogActive = false; }
-            if (dashboardActive) { dashboardController.detach(); dashboardActive = false; }
-            if (sensorsActive) { sensorsController.detach(); sensorsActive = false; }
-            if (garageActive) { garageController.detach(); garageActive = false; }
-            if (liveDataActive) { liveDataController.detach(); liveDataActive = false; }
-            if (knowledgeActive) { knowledgeController.detach(); knowledgeActive = false; }
-            if (serviceActive) { serviceController.detach(); serviceActive = false; }
-            if (gaugeDashActive) { gaugeDashController.detach(); gaugeDashActive = false; }
-            if (hudDashActive) { hudDashController.detach(); hudDashActive = false; }
-            if (odometerActive) { odometerController.detach(); odometerActive = false; }
-            if (aiEstimatorActive) { aiEstimatorController.detach(); aiEstimatorActive = false; }
-            if (carAdvisorActive) { carAdvisorController.detach(); carAdvisorActive = false; }
-            if (scanReportsActive) { scanReportsController.detach(); scanReportsActive = false; }
+            // Action items first — they don't swap the content view, so the
+            // active screen (e.g. a live dashboard) stays attached and keeps
+            // updating. The old flow detached every controller up front, which
+            // froze the visible screen after e.g. running the self-test.
+            if (handleActionItem(id, item)) return true;
+
+            // Screen navigation: exactly one controller is active at a time.
+            detachActiveController();
 
             // Default: let the OS decide; keep-screen-on cleared per nav.
             getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -383,59 +253,42 @@ public class MainActivity extends AppCompatActivity {
             if (id == R.id.nav_welcome) {
                 newView = getLayoutInflater().inflate(R.layout.layout_welcome, null);
                 title = "Hello";
-                // Wire the Connect button + status text
-                final View welcomeView = newView;
-                newView.post(() -> wireWelcomeScreen(welcomeView));
+                // Wire the Connect button + hero animation; detach cancels the
+                // four INFINITE animators, which previously stacked up on every
+                // Welcome visit and burned frames against detached views.
+                setActiveScreen(id, newView, this::wireWelcomeScreen, this::stopWelcomeAnimators);
 
             } else if (id == R.id.nav_dashboard) {
                 newView = getLayoutInflater().inflate(R.layout.layout_dashboard, null);
                 title = "Dashboard (730li)";
                 currentGroup = PollGroup.GROUP_DASHBOARD;
                 restartIfConnected();
-                // Keep-screen-on while Dashboard is up, but stay in portrait — user prefers
-                // the phone orientation to follow their hand, not the app.
+                // Keep-screen-on while Dashboard is up (app is portrait-locked
+                // in the manifest per user preference).
                 getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-                final View dashView = newView;
-                newView.post(() -> {
-                    dashboardController.attach(dashView, MainActivity.this, obdManager);
-                    dashboardActive = true;
-                });
+                setActiveScreen(id, newView,
+                        v -> dashboardController.attach(v, MainActivity.this, obdManager),
+                        dashboardController::detach);
 
             } else if (id == R.id.nav_sensors) {
                 newView = getLayoutInflater().inflate(R.layout.layout_sensors, null);
                 title = "Car & Sensors";
-                final View sensView = newView;
-                newView.post(() -> {
-                    sensorsController.attach(sensView);
-                    sensorsActive = true;
-                });
+                setActiveScreen(id, newView, sensorsController::attach, sensorsController::detach);
 
             } else if (id == R.id.nav_garage) {
                 newView = getLayoutInflater().inflate(R.layout.layout_garage, null);
                 title = "Garage";
-                final View garView = newView;
-                newView.post(() -> {
-                    garageController.attach(garView);
-                    garageActive = true;
-                });
+                setActiveScreen(id, newView, garageController::attach, garageController::detach);
 
             } else if (id == R.id.nav_faultcodes) {
                 newView = getLayoutInflater().inflate(R.layout.layout_faultcodes, null);
                 title = "Fault Codes / Reset";
-                final View dtcView = newView;
-                newView.post(() -> {
-                    faultCodesController.attach(dtcView);
-                    faultCodesActive = true;
-                });
+                setActiveScreen(id, newView, faultCodesController::attach, faultCodesController::detach);
 
             } else if (id == R.id.nav_debuglog) {
                 newView = getLayoutInflater().inflate(R.layout.layout_debuglog, null);
                 title = "Debug Log";
-                final View logView = newView;
-                newView.post(() -> {
-                    debugLogController.attach(logView);
-                    debugLogActive = true;
-                });
+                setActiveScreen(id, newView, debugLogController::attach, debugLogController::detach);
 
             } else if (id == R.id.nav_live_all || id == R.id.nav_live_powertrain
                     || id == R.id.nav_live_thermal || id == R.id.nav_live_fuel
@@ -467,52 +320,36 @@ public class MainActivity extends AppCompatActivity {
                 }
                 currentGroup = group;
                 restartIfConnected();
-                final View liveView = newView;
                 final SensorInfo.Category presetCat = cat;
-                newView.post(() -> {
-                    liveDataController.attach(liveView, presetCat);
-                    liveDataActive = true;
-                });
+                setActiveScreen(id, newView,
+                        v -> liveDataController.attach(v, presetCat),
+                        liveDataController::detach);
 
             } else if (id == R.id.nav_analytics) {
                 newView = getLayoutInflater().inflate(R.layout.layout_analytics, null);
                 title = "Data Analysis";
                 currentGroup = PollGroup.GROUP_ANALYTICS;
                 restartIfConnected();
-                final View analyticsView = newView;
-                newView.post(() -> {
-                    analyticsController.attach(analyticsView);
-                    analyticsActive = true;
-                });
+                setActiveScreen(id, newView, analyticsController::attach, analyticsController::detach);
 
             } else if (id == R.id.nav_sprint) {
                 newView = getLayoutInflater().inflate(R.layout.layout_sprint, null);
                 title = "0–100 Timer";
                 currentGroup = PollGroup.GROUP_SPRINT;
                 restartIfConnected();
-                final View sprintView = newView;
-                newView.post(() -> {
-                    sprintController.attach(sprintView);
-                    sprintActive = true;
-                });
+                setActiveScreen(id, newView, sprintController::attach, sprintController::detach);
 
             } else if (id == R.id.nav_knowledge) {
                 newView = getLayoutInflater().inflate(R.layout.layout_knowledge, null);
                 title = "Knowledge Base";
-                final View kbView = newView;
-                newView.post(() -> {
-                    knowledgeController.attach(kbView);
-                    knowledgeActive = true;
-                });
+                setActiveScreen(id, newView, knowledgeController::attach, knowledgeController::detach);
 
             } else if (id == R.id.nav_service) {
                 newView = getLayoutInflater().inflate(R.layout.layout_service_functions, null);
                 title = "Service Functions";
-                final View svcView = newView;
-                newView.post(() -> {
-                    serviceController.attach(svcView, obdManager);
-                    serviceActive = true;
-                });
+                setActiveScreen(id, newView,
+                        v -> serviceController.attach(v, obdManager),
+                        serviceController::detach);
 
             } else if (id == R.id.nav_dashboard_gauges) {
                 newView = getLayoutInflater().inflate(R.layout.layout_gauge_dashboard, null);
@@ -520,11 +357,9 @@ public class MainActivity extends AppCompatActivity {
                 currentGroup = PollGroup.GROUP_DASHBOARD;
                 restartIfConnected();
                 getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-                final View gdView = newView;
-                newView.post(() -> {
-                    gaugeDashController.attach(gdView, obdManager);
-                    gaugeDashActive = true;
-                });
+                setActiveScreen(id, newView,
+                        v -> gaugeDashController.attach(v, obdManager),
+                        gaugeDashController::detach);
 
             } else if (id == R.id.nav_dashboard_hud) {
                 newView = getLayoutInflater().inflate(R.layout.layout_hud_dashboard, null);
@@ -532,139 +367,37 @@ public class MainActivity extends AppCompatActivity {
                 currentGroup = PollGroup.GROUP_HUD_DASHBOARD;
                 restartIfConnected();
                 getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-                final View hudView = newView;
-                newView.post(() -> {
-                    hudDashController.attach(hudView, obdManager);
-                    hudDashActive = true;
-                });
+                setActiveScreen(id, newView,
+                        v -> hudDashController.attach(v, obdManager),
+                        hudDashController::detach);
 
             } else if (id == R.id.nav_odometer) {
                 newView = getLayoutInflater().inflate(R.layout.layout_odometer, null);
                 title = "Odometer";
-                final View odoView = newView;
-                newView.post(() -> {
-                    odometerController.attach(odoView, obdManager);
-                    odometerActive = true;
-                });
+                setActiveScreen(id, newView,
+                        v -> odometerController.attach(v, obdManager),
+                        odometerController::detach);
 
             } else if (id == R.id.nav_ai_estimator) {
                 newView = getLayoutInflater().inflate(R.layout.layout_ai_estimator, null);
                 title = "AI Repair Estimator";
-                final View aiView = newView;
-                newView.post(() -> {
-                    aiEstimatorController.attach(aiView, MainActivity.this, obdManager);
-                    aiEstimatorActive = true;
-                });
+                setActiveScreen(id, newView,
+                        v -> aiEstimatorController.attach(v, MainActivity.this, obdManager),
+                        aiEstimatorController::detach);
 
             } else if (id == R.id.nav_car_advisor) {
                 newView = getLayoutInflater().inflate(R.layout.layout_car_advisor, null);
                 title = "Help Me Buy a Car";
-                final View advView = newView;
-                newView.post(() -> {
-                    carAdvisorController.attach(advView, MainActivity.this);
-                    carAdvisorActive = true;
-                });
+                setActiveScreen(id, newView,
+                        v -> carAdvisorController.attach(v, MainActivity.this),
+                        carAdvisorController::detach);
 
             } else if (id == R.id.nav_scan_reports) {
                 newView = getLayoutInflater().inflate(R.layout.layout_scan_reports, null);
                 title = "Scan Reports";
-                final View reportsView = newView;
-                newView.post(() -> {
-                    scanReportsController.attach(reportsView, MainActivity.this);
-                    scanReportsActive = true;
-                });
-
-            } else if (id == R.id.nav_disconnect) {
-                if (obdManager.isConnected()) {
-                    obdManager.disconnect();
-                    Toast.makeText(this, "Disconnected", Toast.LENGTH_SHORT).show();
-                } else {
-                    // Offline: guided flow instead of the raw picker dialog.
-                    openConnectFlow();
-                }
-                updateConnectMenuTitle(item);
-                return true;
-            } else if (id == R.id.nav_clear_data) {
-                new androidx.appcompat.app.AlertDialog.Builder(this)
-                        .setTitle("Clear app data?")
-                        .setMessage("This wipes:\n"
-                                + "  • diag + crash logs\n"
-                                + "  • cached last-known sensor values\n"
-                                + "  • 30-day trend samples\n\n"
-                                + "Vehicle profile (VIN, model) and Bluetooth pairing stay.")
-                        .setPositiveButton("Clear", (d, w) -> {
-                            AppDataCleaner.Result res = AppDataCleaner.clearAll(this);
-                            new androidx.appcompat.app.AlertDialog.Builder(this)
-                                    .setTitle("Done")
-                                    .setMessage(res.describe())
-                                    .setPositiveButton("OK", null)
-                                    .show();
-                        })
-                        .setNegativeButton("Cancel", null)
-                        .show();
-                return true;
-            } else if (id == R.id.nav_simulator) {
-                Toast.makeText(this, "Starting simulator…", Toast.LENGTH_SHORT).show();
-                new Thread(() -> {
-                    try {
-                        obdManager.connectSimulator();
-                        runOnUiThread(() -> {
-                            Toast.makeText(this, "Simulator running — open Dashboard",
-                                    Toast.LENGTH_LONG).show();
-                            MenuItem dash = navigationView.getMenu().findItem(R.id.nav_dashboard);
-                            if (dash != null) {
-                                navigationView.getMenu()
-                                        .performIdentifierAction(dash.getItemId(), 0);
-                            }
-                        });
-                    } catch (Exception e) {
-                        runOnUiThread(() -> Toast.makeText(this,
-                                "Simulator failed: " + e.getMessage(),
-                                Toast.LENGTH_LONG).show());
-                    }
-                }, "SimulatorBoot").start();
-                return true;
-            } else if (id == R.id.nav_fuel_probe) {
-                Toast.makeText(this, "Probing fuel-level DIDs — this takes ~15 s…",
-                        Toast.LENGTH_LONG).show();
-                new Thread(() -> {
-                    FuelLevelProbe.Result r = FuelLevelProbe.run(this, obdManager);
-                    runOnUiThread(() ->
-                            new androidx.appcompat.app.AlertDialog.Builder(this)
-                                    .setTitle(r.bestMatch != null
-                                            ? "Found a working DID"
-                                            : "No DID responded")
-                                    .setMessage(r.report)
-                                    .setPositiveButton("OK", null)
-                                    .show());
-                }, "FuelProbeUI").start();
-                return true;
-            } else if (id == R.id.nav_selftest) {
-                Toast.makeText(this, "Running self-test (about 12 s)…",
-                        Toast.LENGTH_SHORT).show();
-                new Thread(() -> {
-                    SelfTestRunner.Report r = SelfTestRunner.run(this);
-                    runOnUiThread(() ->
-                            new androidx.appcompat.app.AlertDialog.Builder(this)
-                                    .setTitle(r.allPassed ? "Self-test PASSED" : "Self-test FAILED")
-                                    .setMessage(r.text)
-                                    .setPositiveButton("OK", null)
-                                    .show());
-                }, "SelfTest").start();
-                return true;
-            } else if (id == R.id.nav_bt_reset) {
-                new androidx.appcompat.app.AlertDialog.Builder(this)
-                        .setTitle("Reset Bluetooth pairing?")
-                        .setMessage("Use this when the OBD adapter is stuck and no data is coming through.\n\n"
-                                + "This will:\n"
-                                + "  • disconnect the current OBD session\n"
-                                + "  • unpair the saved OBD adapter\n"
-                                + "  • open Bluetooth settings so you can pair it again\n\n"
-                                + "Reboot the adapter (unplug/re-plug) before re-pairing for best results.")
-                        .setPositiveButton("Reset", (d, w) -> bluetoothHelper.clearBluetoothCache())
-                        .setNegativeButton("Cancel", null)
-                        .show();
-                return true;
+                setActiveScreen(id, newView,
+                        v -> scanReportsController.attach(v, MainActivity.this),
+                        scanReportsController::detach);
             }
 
             if (newView != null) {
@@ -677,6 +410,207 @@ public class MainActivity extends AppCompatActivity {
 
             return true;
         });
+    }
+
+    /**
+     * Drawer items that perform an action instead of swapping the content view.
+     * Returns true when {@code id} was handled here — the caller then leaves
+     * the currently active screen alone.
+     */
+    private boolean handleActionItem(int id, MenuItem item) {
+        if (id == R.id.nav_disconnect) {
+            if (obdManager.isConnected()) {
+                // Persist what the trackers have accumulated before the data
+                // source goes away — otherwise the last flush interval's worth
+                // of odometer distance / gauge seeds is lost.
+                OdometerTracker.get(this).flush();
+                LastValuesCache.get(this).flush();
+                obdManager.disconnect();
+                Toast.makeText(this, "Disconnected", Toast.LENGTH_SHORT).show();
+            } else {
+                // Offline: guided flow instead of the raw picker dialog.
+                openConnectFlow();
+            }
+            updateConnectMenuTitle(item);
+            return true;
+        }
+        if (id == R.id.nav_clear_data) {
+            new androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setTitle("Clear app data?")
+                    .setMessage("This wipes:\n"
+                            + "  • diag + crash logs\n"
+                            + "  • DTC event log\n"
+                            + "  • cached last-known sensor values\n"
+                            + "  • 30-day trend samples\n\n"
+                            + "Vehicle profile (VIN, model) and Bluetooth pairing stay.")
+                    .setPositiveButton("Clear", (d, w) -> {
+                        AppDataCleaner.Result res = AppDataCleaner.clearAll(this);
+                        new androidx.appcompat.app.AlertDialog.Builder(this)
+                                .setTitle("Done")
+                                .setMessage(res.describe())
+                                .setPositiveButton("OK", null)
+                                .show();
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+            return true;
+        }
+        if (id == R.id.nav_simulator) {
+            Toast.makeText(this, "Starting simulator…", Toast.LENGTH_SHORT).show();
+            new Thread(() -> {
+                try {
+                    obdManager.connectSimulator();
+                    runOnUiThread(() -> {
+                        Toast.makeText(this, "Simulator running — open Dashboard",
+                                Toast.LENGTH_LONG).show();
+                        MenuItem dash = navigationView.getMenu().findItem(R.id.nav_dashboard);
+                        if (dash != null) {
+                            navigationView.getMenu()
+                                    .performIdentifierAction(dash.getItemId(), 0);
+                        }
+                    });
+                } catch (Exception e) {
+                    runOnUiThread(() -> Toast.makeText(this,
+                            "Simulator failed: " + e.getMessage(),
+                            Toast.LENGTH_LONG).show());
+                }
+            }, "SimulatorBoot").start();
+            return true;
+        }
+        if (id == R.id.nav_fuel_probe) {
+            Toast.makeText(this, "Probing fuel-level DIDs — this takes ~15 s…",
+                    Toast.LENGTH_LONG).show();
+            new Thread(() -> {
+                FuelLevelProbe.Result r = FuelLevelProbe.run(this, obdManager);
+                runOnUiThread(() ->
+                        new androidx.appcompat.app.AlertDialog.Builder(this)
+                                .setTitle(r.bestMatch != null
+                                        ? "Found a working DID"
+                                        : "No DID responded")
+                                .setMessage(r.report)
+                                .setPositiveButton("OK", null)
+                                .show());
+            }, "FuelProbeUI").start();
+            return true;
+        }
+        if (id == R.id.nav_selftest) {
+            Toast.makeText(this, "Running self-test (about 12 s)…",
+                    Toast.LENGTH_SHORT).show();
+            new Thread(() -> {
+                SelfTestRunner.Report r = SelfTestRunner.run(this);
+                runOnUiThread(() ->
+                        new androidx.appcompat.app.AlertDialog.Builder(this)
+                                .setTitle(r.allPassed ? "Self-test PASSED" : "Self-test FAILED")
+                                .setMessage(r.text)
+                                .setPositiveButton("OK", null)
+                                .show());
+            }, "SelfTest").start();
+            return true;
+        }
+        if (id == R.id.nav_bt_reset) {
+            new androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setTitle("Reset Bluetooth pairing?")
+                    .setMessage("Use this when the OBD adapter is stuck and no data is coming through.\n\n"
+                            + "This will:\n"
+                            + "  • disconnect the current OBD session\n"
+                            + "  • unpair the saved OBD adapter\n"
+                            + "  • open Bluetooth settings so you can pair it again\n\n"
+                            + "Reboot the adapter (unplug/re-plug) before re-pairing for best results.")
+                    .setPositiveButton("Reset", (d, w) -> bluetoothHelper.clearBluetoothCache())
+                    .setNegativeButton("Cancel", null)
+                    .show();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Debug hooks for `adb shell am start --es action <name>` — keeps the QA
+     * loop scriptable without poking the drawer. Also invoked from
+     * {@link #onNewIntent} (launchMode=singleTop) so the hooks work against a
+     * warm activity; previously they were read in onCreate only, making
+     * scripted runs a silent no-op once the app was already open.
+     */
+    private void handleDebugIntent(android.content.Intent intent) {
+        String debugAction = intent == null ? null : intent.getStringExtra("action");
+        if (debugAction == null) return;
+        if ("selftest".equals(debugAction)) {
+            new Thread(() -> {
+                SelfTestRunner.Report r = SelfTestRunner.run(this);
+                ObdLogger.get().log(ObdLogger.Level.INFO,
+                        "SELFTEST RESULT " + (r.allPassed ? "PASS" : "FAIL"));
+                ObdLogger.get().log(ObdLogger.Level.INFO, "SELFTEST REPORT:\n" + r.text);
+            }, "SelfTestFromIntent").start();
+        } else if ("simulator".equals(debugAction)) {
+            new Thread(() -> {
+                try { obdManager.connectSimulator(); }
+                catch (Exception e) {
+                    ObdLogger.get().log(ObdLogger.Level.ERROR, "Sim boot failed: " + e);
+                }
+            }, "SimBootFromIntent").start();
+        } else if ("fuel_probe".equals(debugAction)) {
+            // Walk BMW UDS candidate DIDs for fuel level. Writes each raw
+            // response + decoded value to obd-diag.log so we can see which
+            // DID (if any) the user's DME actually answers.
+            new Thread(() -> {
+                FuelLevelProbe.Result r = FuelLevelProbe.run(this, obdManager);
+                ObdLogger.get().log(ObdLogger.Level.INFO,
+                        "FUEL_PROBE " + (r.bestMatch != null ? "PASS" : "FAIL")
+                                + "\n" + r.report);
+            }, "FuelProbe").start();
+        } else if ("ai_chat_test".equals(debugAction)) {
+            // Dry-run: exercise the AI chat + Google Search grounding wire
+            // end-to-end without needing to pick a photo, tap through the
+            // estimator UI, or type a question. Bypasses vision entirely by
+            // passing a canned estimate JSON. The response goes to obd-diag.log.
+            String question = intent.getStringExtra("q");
+            if (question == null || question.isEmpty()) {
+                question = "How much does an OEM BMW E65 water pump cost in Deira, Dubai, and which suppliers stock it?";
+            }
+            final String finalQuestion = question;
+            new Thread(() -> {
+                String apiKey = AiSettings.getEffectiveKey(this);
+                if (apiKey == null || apiKey.isEmpty()) {
+                    ObdLogger.get().log(ObdLogger.Level.ERROR, "AI_CHAT_TEST: no API key configured");
+                    return;
+                }
+                String fakeEstimate = "{"
+                        + "\"identified_part\":\"Water pump (electric, BMW E65 730li N52)\","
+                        + "\"confidence\":\"high\","
+                        + "\"severity\":\"Drive carefully\","
+                        + "\"summary\":\"Coolant leak from the water pump housing. On the N52 engine the pump is electric, mounted on the front timing cover. Common failure around 120-150k km due to internal impeller cracking.\","
+                        + "\"parts\":[{\"name\":\"Electric water pump\",\"oem_number\":\"11517586925\",\"price_aed_low\":900,\"price_aed_high\":1600}]"
+                        + "}";
+                ObdLogger.get().log(ObdLogger.Level.INFO,
+                        "AI_CHAT_TEST start — question: " + finalQuestion);
+                try {
+                    GeminiVisionProvider provider = new GeminiVisionProvider(apiKey);
+                    AiVisionProvider.ChatReply reply = provider.chatFollowup(
+                            fakeEstimate, null,
+                            new java.util.ArrayList<AiVisionProvider.ChatTurn>(),
+                            finalQuestion);
+                    ObdLogger.get().log(ObdLogger.Level.INFO,
+                            "AI_CHAT_TEST reply (" + reply.text.length() + " chars, "
+                                    + reply.sourceUrls.size() + " sources):");
+                    ObdLogger.get().log(ObdLogger.Level.INFO, reply.text);
+                    for (String u : reply.sourceUrls) {
+                        ObdLogger.get().log(ObdLogger.Level.INFO, "  source: " + u);
+                    }
+                    ObdLogger.get().log(ObdLogger.Level.INFO,
+                            "AI_CHAT_TEST DONE " + (reply.text.length() > 0 ? "PASS" : "FAIL"));
+                } catch (Exception e) {
+                    ObdLogger.get().log(ObdLogger.Level.ERROR,
+                            "AI_CHAT_TEST failed: " + e.getMessage());
+                }
+            }, "AiChatTest").start();
+        }
+    }
+
+    @Override
+    protected void onNewIntent(android.content.Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleDebugIntent(intent);
     }
 
     /**
@@ -695,6 +629,15 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /** Welcome hero animators — cancelled on detach via {@link #stopWelcomeAnimators}. */
+    private final java.util.ArrayList<android.animation.Animator> welcomeAnimators =
+            new java.util.ArrayList<>();
+
+    private void stopWelcomeAnimators() {
+        for (android.animation.Animator a : welcomeAnimators) a.cancel();
+        welcomeAnimators.clear();
+    }
+
     /** Bind the Welcome screen's Connect button + live status to BluetoothHelper. */
     private void wireWelcomeScreen(View root) {
         TextView statusTv = root.findViewById(R.id.tvWelcomeStatus);
@@ -702,8 +645,11 @@ public class MainActivity extends AppCompatActivity {
         if (statusTv == null || btn == null) return;
 
         // Vector-based hero — combines four subtle motion layers so the car
-        // reads as "alive" without any bitmap cost. Each animator is created
-        // once and GCs with the View.
+        // reads as "alive" without any bitmap cost. The animators are INFINITE,
+        // so they are registered in welcomeAnimators and cancelled on detach —
+        // "GCs with the View" was wishful thinking; each Welcome visit used to
+        // stack four more animators ticking against detached views.
+        stopWelcomeAnimators();
         //   1. translationY  — floating up and down 5dp / 2.4s
         //   2. translationX  — slow horizontal drift ±7dp / 6.8s
         //   3. scaleY        — gentle breathing 1.00 → 1.04 / 2.4s
@@ -750,6 +696,10 @@ public class MainActivity extends AppCompatActivity {
             drift.start();
             breathe.start();
             tilt.start();
+            welcomeAnimators.add(floatY);
+            welcomeAnimators.add(drift);
+            welcomeAnimators.add(breathe);
+            welcomeAnimators.add(tilt);
         }
 
         Runnable refresh = () -> {
@@ -785,8 +735,11 @@ public class MainActivity extends AppCompatActivity {
      * onDone which routes the user to the dashboard.
      */
     void openConnectFlow() {
-        if (connectFlowActive) return;
-        detachAllControllers();
+        if (activeScreenId == SCREEN_CONNECT_FLOW) return;
+        detachActiveController();
+        // A dashboard entry point (pill tap) would otherwise carry its
+        // keep-screen-on flag into the connect flow.
+        getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         View newView = getLayoutInflater().inflate(R.layout.layout_connect_flow, null);
         FrameLayout container = findViewById(R.id.content_container);
         container.removeAllViews();
@@ -797,8 +750,7 @@ public class MainActivity extends AppCompatActivity {
             connectFlowController = new ConnectFlowController(this, bluetoothHelper, obdManager);
         }
         connectFlowController.setOnDone(() -> {
-            connectFlowActive = false;
-            connectFlowController.detach();
+            detachActiveController();
             // After success, drop the user on the live dashboard. On cancel
             // (no active connection) show Welcome instead so they aren't
             // staring at a blank container.
@@ -810,34 +762,13 @@ public class MainActivity extends AppCompatActivity {
                 navigationView.getMenu().performIdentifierAction(target.getItemId(), 0);
             }
         });
+        // Attach synchronously — the flow doesn't need a measured view, and a
+        // posted attach would leave a window where the BT receiver isn't
+        // registered while the screen is already visible.
         connectFlowController.attach(newView);
-        connectFlowActive = true;
-    }
-
-    /** Detach every screen controller that owns UI callbacks so a swap doesn't
-     *  leave a stale onValue routing to a detached view. Central place so new
-     *  controllers only have to add one line. */
-    private void detachAllControllers() {
-        if (analyticsActive) { analyticsController.detach(); analyticsActive = false; }
-        if (sprintActive) { sprintController.detach(); sprintActive = false; }
-        if (faultCodesActive) { faultCodesController.detach(); faultCodesActive = false; }
-        if (debugLogActive) { debugLogController.detach(); debugLogActive = false; }
-        if (dashboardActive) { dashboardController.detach(); dashboardActive = false; }
-        if (sensorsActive) { sensorsController.detach(); sensorsActive = false; }
-        if (garageActive) { garageController.detach(); garageActive = false; }
-        if (liveDataActive) { liveDataController.detach(); liveDataActive = false; }
-        if (knowledgeActive) { knowledgeController.detach(); knowledgeActive = false; }
-        if (serviceActive) { serviceController.detach(); serviceActive = false; }
-        if (gaugeDashActive) { gaugeDashController.detach(); gaugeDashActive = false; }
-        if (hudDashActive) { hudDashController.detach(); hudDashActive = false; }
-        if (odometerActive) { odometerController.detach(); odometerActive = false; }
-        if (aiEstimatorActive) { aiEstimatorController.detach(); aiEstimatorActive = false; }
-        if (carAdvisorActive) { carAdvisorController.detach(); carAdvisorActive = false; }
-        if (scanReportsActive) { scanReportsController.detach(); scanReportsActive = false; }
-        if (connectFlowActive && connectFlowController != null) {
-            connectFlowController.detach();
-            connectFlowActive = false;
-        }
+        activeScreenId = SCREEN_CONNECT_FLOW;
+        activeDetach = connectFlowController::detach;
+        attachGeneration++; // invalidate any still-pending posted attach
     }
 
     @Override
@@ -846,7 +777,8 @@ public class MainActivity extends AppCompatActivity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         // ConnectFlow uses request code 2001 for BT_CONNECT / BT_SCAN. Route the
         // result back so the flow can advance to the next step.
-        if (requestCode == 2001 && connectFlowActive && connectFlowController != null) {
+        if (requestCode == 2001 && activeScreenId == SCREEN_CONNECT_FLOW
+                && connectFlowController != null) {
             connectFlowController.onPermissionResult();
         }
     }
@@ -921,26 +853,29 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateUI(String name, double value, String unit) {
-        if (sprintActive && "Vehicle Speed".equals(name)) {
+        // Dispatch on isAttached() alone: only one controller can be attached
+        // at a time now, so the old parallel boolean checks (whose desync could
+        // starve the genuinely active dashboard) are gone.
+        if (activeScreenId == R.id.nav_sprint && "Vehicle Speed".equals(name)) {
             sprintController.onSpeedValue(value);
         }
 
-        if (dashboardActive && dashboardController.isAttached()) {
+        if (dashboardController.isAttached()) {
             dashboardController.onValue(name, value);
             return;
         }
 
-        if (gaugeDashActive && gaugeDashController.isAttached()) {
+        if (gaugeDashController.isAttached()) {
             gaugeDashController.onValue(name, value);
             return;
         }
 
-        if (hudDashActive && hudDashController.isAttached()) {
+        if (hudDashController.isAttached()) {
             hudDashController.onValue(name, value);
             return;
         }
 
-        if (liveDataActive && liveDataController.isAttached()) {
+        if (liveDataController.isAttached()) {
             liveDataController.onValue(name, value);
             return;
         }
@@ -948,7 +883,7 @@ public class MainActivity extends AppCompatActivity {
         FrameLayout container = findViewById(R.id.content_container);
         if (container.getChildCount() == 0) return;
         View activeLayout = container.getChildAt(0);
-        String formatted = String.format("%.1f %s", value, unit);
+        String formatted = String.format(java.util.Locale.US, "%.1f %s", value, unit);
 
         // Legacy fallback for screens that still ship hidden TextViews matching the
         // historical "Name: value unit" pipeline (welcome / debuglog placeholders, etc.).
@@ -983,6 +918,10 @@ public class MainActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         connStateHandler.removeCallbacks(connStateTick);
+        // Cheap prefs writes — make sure accumulated odometer distance and the
+        // gauge-seed cache survive a process kill while backgrounded.
+        OdometerTracker.get(this).flush();
+        LastValuesCache.get(this).flush();
     }
 
     @Override
@@ -992,24 +931,17 @@ public class MainActivity extends AppCompatActivity {
         // destroyed without going through onPause (e.g. finish() from background),
         // the anonymous Runnable would otherwise leak this Activity until process end.
         connStateHandler.removeCallbacksAndMessages(null);
-        analyticsController.detach();
-        sprintController.detach();
-        debugLogController.detach();
-        dashboardController.detach();
-        sensorsController.detach();
-        garageController.detach();
-        liveDataController.detach();
-        knowledgeController.detach();
-        serviceController.detach();
-        gaugeDashController.detach();
-        hudDashController.detach();
-        odometerController.detach();
-        aiEstimatorController.detach();
-        carAdvisorController.detach();
-        scanReportsController.detach();
-        if (faultCodesController != null) faultCodesController.detach();
-        if (obdManager != null && obdManager.isConnected()) obdManager.disconnect();
+        detachActiveController();
         alertManager.shutdown();
-        ObdService.stop(this);
+        // Only tear down the OBD session when the Activity is going away for
+        // good. On a system-initiated recreate the service keeps the reconnect
+        // watchdog alive and onCreate re-binds fresh instances.
+        if (isFinishing()) {
+            if (obdManager != null) obdManager.disconnect();
+            ObdService.stop(this);
+            // Clear the service's static refs — they hold this Activity's
+            // context and would leak the instance otherwise.
+            ObdService.unbind();
+        }
     }
 }

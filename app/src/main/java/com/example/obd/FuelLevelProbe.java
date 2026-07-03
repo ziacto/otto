@@ -62,18 +62,41 @@ public final class FuelLevelProbe {
         BmwMode22Pid.Did best = null;
         Double bestVal = null;
         List<String> lines = new ArrayList<>();
+
+        // Read every candidate up front, grouped by module, one paused+routed
+        // session per module (was one per DID). Reading them individually tore
+        // the poll thread down and flipped D-CAN routing four times over — the
+        // diag log showed repeated "Poll loop start" churn and a full "NO DATA"
+        // dashboard cycle each time routing snapped back to functional. See
+        // ObdManagerFast.readUdsRawBatch. All current candidates are DME, so
+        // this is normally a single batch.
+        java.util.LinkedHashMap<BmwModule, java.util.List<Integer>> byModule =
+                new java.util.LinkedHashMap<>();
         for (BmwMode22Pid.Did did : CANDIDATE_DIDS) {
-            String rawResp;
-            Double decoded;
+            byModule.computeIfAbsent(did.module, k -> new ArrayList<>()).add(did.did);
+        }
+        java.util.Map<Integer, String> rawByDid = new java.util.HashMap<>();
+        for (java.util.Map.Entry<BmwModule, java.util.List<Integer>> e : byModule.entrySet()) {
+            int[] dids = new int[e.getValue().size()];
+            for (int i = 0; i < dids.length; i++) dids[i] = e.getValue().get(i);
             try {
-                rawResp = obdManager.readUdsRawResponse(did.module, did.did);
-            } catch (Exception e) {
-                rawResp = "EXCEPTION: " + e.getMessage();
+                rawByDid.putAll(obdManager.readUdsRawBatch(e.getKey(), dids));
+            } catch (Exception ex) {
+                for (int d : dids) rawByDid.put(d, "EXCEPTION: " + ex.getMessage());
             }
+        }
+
+        for (BmwMode22Pid.Did did : CANDIDATE_DIDS) {
+            String rawResp = rawByDid.get(did.did);
+            if (rawResp == null) rawResp = "";
+            Double decoded = null;
             try {
-                decoded = obdManager.readMode22Pid(did);
+                byte[] data = BmwMode22Pid.parseMode22Data(rawResp, did.did);
+                if (data.length > 0) decoded = did.decoder.decode(data);
             } catch (Exception e) {
-                decoded = null;
+                // Keep the raw response in the report; a decode failure on one
+                // candidate must not abort the rest.
+                if (rawResp.isEmpty()) rawResp = "EXCEPTION: " + e.getMessage();
             }
             String status;
             if (decoded == null) {

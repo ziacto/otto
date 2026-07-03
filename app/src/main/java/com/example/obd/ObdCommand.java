@@ -6,7 +6,11 @@ import java.io.OutputStream;
 
 public abstract class ObdCommand {
     private final String command;
-    private static final int TIMEOUT_MS = 8000;
+    // With ATST 64 (400 ms request timeout) + ATAT2 adaptive timing set during
+    // init, a live ECU answers well under 1 s — 2.5 s covers slow clones with
+    // margin. The old 8 s meant a silently dead SPP link took minutes (8 s ×
+    // N commands × 3 cycles) to be declared disconnected.
+    private static final int TIMEOUT_MS = 2500;
     // Consecutive NO-DATA count; once this crosses UNSUPPORTED_STREAK the poll
     // loop skips this command for the rest of the connection. Saves ~200-300 ms
     // per cycle per unsupported PID on the E65 DME (which only answers 010C,
@@ -79,14 +83,31 @@ public abstract class ObdCommand {
             }
         }
 
-        // No positive response — fall back to ELM-status detection.
-        if (raw.isEmpty() || isElm327Status(raw)) {
+        // No positive response. Only a genuine "this PID is unsupported" answer
+        // (NO DATA, or a 7F <mode> negative response) counts toward the
+        // unsupported streak — transient ELM states (SEARCHING, STOPPED, BUS
+        // BUSY, an empty buffer after a BLE stall) used to poison supported
+        // PIDs for the rest of the session after 4 glitchy cycles.
+        if (isGenuineNoData(raw)) {
             consecutiveNoData++;
+        }
+        if (raw.isEmpty() || isElm327Status(raw)) {
             throw new IOException("ELM: " + raw);
         }
-        // Unknown but non-empty response — treat as NO DATA.
-        consecutiveNoData++;
         throw new IOException("ELM: NO DATA");
+    }
+
+    /** True only for NO DATA or a 7F negative response addressed to this command's mode. */
+    private boolean isGenuineNoData(String raw) {
+        String u = raw.toUpperCase();
+        if (u.contains("NO DATA")) return true;
+        if (command.length() >= 2 && Character.isDigit(command.charAt(0))) {
+            try {
+                int mode = Integer.parseInt(command.substring(0, 2), 16);
+                return u.replaceAll("\\s+", "").contains(String.format("7F%02X", mode));
+            } catch (NumberFormatException ignored) { }
+        }
+        return false;
     }
 
     /**
@@ -111,8 +132,15 @@ public abstract class ObdCommand {
         }
         String hex = raw.replaceAll("\\s+", "").toUpperCase();
         String posMarker = String.format("%02X%02X", reqMode + 0x40, pid);
+        // Only accept a marker aligned on a byte boundary (even index) —
+        // adjacent bytes like "B4 10 C5" contain "410C" at an odd offset,
+        // which would slice the payload mid-byte and parse garbage as a
+        // perfectly valid-looking reading.
         int posIdx = hex.lastIndexOf(posMarker);
-        if (posIdx < 0) return null;
+        while (posIdx > 0 && (posIdx % 2) != 0) {
+            posIdx = hex.lastIndexOf(posMarker, posIdx - 1);
+        }
+        if (posIdx < 0 || (posIdx % 2) != 0) return null;
         // Rebuild as "AA BB CC ..." so existing parseResult(split(" ")) keeps working.
         StringBuilder sb = new StringBuilder();
         for (int i = posIdx; i + 2 <= hex.length(); i += 2) {

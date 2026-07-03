@@ -65,13 +65,36 @@ public class HudDashboardController {
     private double lastRpm   = 0;
     private double lastSpeed = 0;
 
+    // Staleness: the whole HUD polls one group, so all telemetry goes stale
+    // together when the socket drops. Dim the readouts instead of freezing
+    // them crisp on the last value — same bug class the tile dashboard's
+    // "—" sweep fixed, applied here with alpha.
+    private volatile long lastSampleAtMs = 0L;
+    private static final long STALE_MS = 6_000L;
+    private static final float STALE_ALPHA = 0.35f;
+
     private final Runnable perfRefresh = new Runnable() {
         @Override public void run() {
             if (root == null) return;
             refreshPerformancePanel();
+            boolean stale = lastSampleAtMs == 0
+                    || System.currentTimeMillis() - lastSampleAtMs > STALE_MS;
+            setTelemetryAlpha(stale ? STALE_ALPHA : 1f);
+            updateStatus();
             ui.postDelayed(this, 500);
         }
     };
+
+    private void setTelemetryAlpha(float a) {
+        TextView[] heroes = { tvRpm, tvSpeed, tvThrottle, tvGear, tvStft, tvLtft, tvAmbient };
+        for (TextView tv : heroes) {
+            if (tv != null && tv.getAlpha() != a) tv.setAlpha(a);
+        }
+        MiniCell[] cells = { coolant, oil, maf, load, intake, battery, timing, torque, lambda };
+        for (MiniCell c : cells) {
+            if (c != null && c.value != null && c.value.getAlpha() != a) c.value.setAlpha(a);
+        }
+    }
 
     public void attach(View view, ObdManagerFast manager) {
         this.root = view;
@@ -80,6 +103,9 @@ public class HudDashboardController {
         this.perf.reset();
         lastRpm = 0;
         lastSpeed = 0;
+        lastSampleAtMs = 0;
+        lastGearCandidate = -1;
+        stableGear = 0;
 
         bindViews();
         wireButtons();
@@ -168,6 +194,7 @@ public class HudDashboardController {
     /** Called from MainActivity.updateUI on every polled value. */
     public void onValue(String name, double value) {
         if (root == null) return;
+        lastSampleAtMs = System.currentTimeMillis();
         switch (name) {
             case "RPM":
                 if (tvRpm != null) tvRpm.setText(String.format(Locale.US, "%.0f", value));
@@ -221,12 +248,14 @@ public class HudDashboardController {
                 setCell(torque, value, "%.0f", value < 0 ? 0 : value, 90, 70);
                 break;
             case "Lambda":
-                // 1.000 = stoichiometric; colour green near 1.0, amber/red when far off
+                // 1.000 = stoichiometric; colour green near 1.0, amber/red when
+                // far off. Red must be tested FIRST — with amber (>0.05) first,
+                // the >0.10 red branch was unreachable.
                 if (lambda != null && lambda.value != null) {
                     lambda.value.setText(String.format(Locale.US, "%.3f", value));
                     double deviation = Math.abs(value - 1.0);
-                    if (deviation > 0.05)      lambda.value.setTextColor(0xFFFFB300);
-                    else if (deviation > 0.10) lambda.value.setTextColor(0xFFF44336);
+                    if (deviation > 0.10)      lambda.value.setTextColor(0xFFF44336);
+                    else if (deviation > 0.05) lambda.value.setTextColor(0xFFFFB300);
                     else                       lambda.value.setTextColor(0xFF03DAC5);
                 }
                 break;
@@ -243,10 +272,21 @@ public class HudDashboardController {
         }
     }
 
+    // Debounce: adjacent ZF ratios are only ~12-25% apart, so measurement
+    // noise near a midpoint used to flicker the display between two gears.
+    // A candidate must repeat on two consecutive samples before it shows.
+    private int lastGearCandidate = -1;
+    private int stableGear = 0;
+
     /** Estimate current gear from last known RPM + speed using ZF 6HP26 ratios. */
     private void updateGear() {
         if (tvGear == null) return;
-        int gear = estimateGear(lastRpm, lastSpeed);
+        int candidate = estimateGear(lastRpm, lastSpeed);
+        if (candidate == lastGearCandidate) {
+            stableGear = candidate;
+        }
+        lastGearCandidate = candidate;
+        int gear = stableGear;
         if (gear == 0) {
             tvGear.setText("N");
             tvGear.setTextColor(0xFF888888);
@@ -261,8 +301,10 @@ public class HudDashboardController {
 
     /**
      * Returns 1–6 for a matched ZF 6HP26 gear, or 0 if below speed threshold /
-     * unmatched. Uses a ±20% tolerance on the ratio so minor tyre slip and rounding
-     * in the OBD speed PID don't cause flicker.
+     * unmatched. Tolerance is ±9%: adjacent ratios differ by as little as ~25%
+     * (5th 0.867 vs 6th 0.691), so the old ±20% window overlapped neighbours
+     * and let 5th/6th mis-identify; 9% stays under half the smallest gap while
+     * absorbing tyre slip and OBD speed rounding.
      */
     private static int estimateGear(double rpm, double speedKmh) {
         if (speedKmh < 3 || rpm < 500) return 0;
@@ -273,7 +315,7 @@ public class HudDashboardController {
             double err = Math.abs(calcRatio - GEAR_RATIOS[i]) / GEAR_RATIOS[i];
             if (err < bestErr) { bestErr = err; best = i + 1; }
         }
-        return bestErr < 0.20 ? best : 0;
+        return bestErr < 0.09 ? best : 0;
     }
 
     private void setCell(MiniCell cell, double v, String fmt, double colorVal, double hot, double warn) {

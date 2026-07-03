@@ -12,12 +12,14 @@ import android.content.Context;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * GATT-based transport for BLE-only ELM327 clones (vLinker BM+, OBDLink LX, etc).
@@ -26,10 +28,13 @@ import java.util.concurrent.TimeUnit;
  * {@link ObdConnection} so the rest of the app (init sequence, poll loop,
  * one-shot commands) does not need to know which transport is in use.
  *
- * BLE notifications from the adapter are written into a PipedOutputStream;
- * the caller reads from the connected PipedInputStream. Outbound bytes are
- * chunked to fit the 20-byte default ATT MTU and written to the adapter's
- * write characteristic.
+ * BLE notifications from the adapter are enqueued into a blocking queue and
+ * drained by a queue-backed InputStream. A PipedInputStream is deliberately
+ * NOT used here: it binds itself to the last reader thread, and the manager
+ * kills/recreates the poll thread on every one-shot — a notification arriving
+ * in that window used to hit a dead reader and get silently dropped ("Pipe
+ * broken"), corrupting the next read. Outbound bytes are chunked to the
+ * negotiated MTU and written to the adapter's write characteristic.
  */
 @SuppressLint("MissingPermission")
 @SuppressWarnings("deprecation") // pre-API-33 GATT setValue/writeCharacteristic — kept for minSdk 24
@@ -53,8 +58,13 @@ public class BleObdTransport {
     private volatile BluetoothGattCharacteristic writeChar;
     private volatile BluetoothGattCharacteristic notifyChar;
 
-    private volatile PipedInputStream pipedIn;
-    private volatile PipedOutputStream rxSink;
+    // Thread-agnostic rx path: GATT callback thread offers chunks (never blocks),
+    // any reader thread drains them. queuedBytes tracks unread bytes across the
+    // queue plus the partially-consumed head chunk so available() stays exact.
+    private final LinkedBlockingQueue<byte[]> rxQueue = new LinkedBlockingQueue<>(512);
+    private final AtomicInteger queuedBytes = new AtomicInteger(0);
+    private final AtomicBoolean discoveryStarted = new AtomicBoolean(false);
+    private volatile int chunkSize = BLE_CHUNK_SIZE;
     private BufferedInputStream bufIn;
     private OutputStream txOut;
 
@@ -75,6 +85,13 @@ public class BleObdTransport {
         public void onConnectionStateChange(BluetoothGatt g, int status, int newState) {
             ObdLogger.get().log(ObdLogger.Level.INFO,
                     "BLE state=" + newState + " status=" + status);
+            // A disconnect must clear `connected` regardless of status — link
+            // loss arrives as status 8/133 with STATE_DISCONNECTED, and the old
+            // early-return on bad status left isConnected() reporting true
+            // forever after the link died.
+            if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                connected = false;
+            }
             if (status != BluetoothGatt.GATT_SUCCESS) {
                 firstError = new IOException("GATT status=" + status);
                 connectedLatch.countDown();
@@ -103,10 +120,20 @@ public class BleObdTransport {
         public void onMtuChanged(BluetoothGatt g, int mtu, int status) {
             ObdLogger.get().log(ObdLogger.Level.INFO,
                     "BLE MTU=" + mtu + " status=" + status);
-            // Now safe to discover services
-            if (!g.discoverServices()) {
-                firstError = new IOException("discoverServices() rejected");
-                servicesLatch.countDown();
+            if (status == BluetoothGatt.GATT_SUCCESS && mtu > 23) {
+                // Use the negotiated MTU for outbound chunking (ATT header = 3
+                // bytes). We used to request 247 and then still chunk at 20.
+                chunkSize = mtu - 3;
+            }
+            // Now safe to discover services. CAS-guarded because connect() has
+            // a fallback that starts discovery if this callback never fires
+            // (some stacks skip onMtuChanged when the MTU was already
+            // negotiated) — only one of the two paths may call it.
+            if (discoveryStarted.compareAndSet(false, true)) {
+                if (!g.discoverServices()) {
+                    firstError = new IOException("discoverServices() rejected");
+                    servicesLatch.countDown();
+                }
             }
             CountDownLatch l = mtuLatch;
             if (l != null) l.countDown();
@@ -152,17 +179,23 @@ public class BleObdTransport {
                                             BluetoothGattCharacteristic c) {
             if (closed) return;
             byte[] data = c.getValue();
-            PipedOutputStream sink = rxSink;
-            if (data == null || sink == null) return;
+            if (data == null || data.length == 0) return;
             lastNotifyAtMs = System.currentTimeMillis();
             RawFrameLogger.get().rx(data, 0, data.length);
-            try {
-                sink.write(data);
-                sink.flush();
-            } catch (IOException e) {
-                ObdLogger.get().log(ObdLogger.Level.ERROR,
-                        "BLE rx pipe write fail: " + e.getMessage());
+            // Clone: the stack may reuse the characteristic's backing array.
+            // offer() never blocks the Binder GATT callback thread; at OBD data
+            // rates the 512-chunk queue only fills if nothing has been reading
+            // for a long time, in which case dropping the oldest is correct.
+            byte[] copy = data.clone();
+            while (!rxQueue.offer(copy)) {
+                byte[] dropped = rxQueue.poll();
+                if (dropped != null) {
+                    queuedBytes.addAndGet(-dropped.length);
+                    ObdLogger.get().log(ObdLogger.Level.ERROR,
+                            "BLE rx queue full — dropped " + dropped.length + " stale bytes");
+                }
             }
+            queuedBytes.addAndGet(copy.length);
         }
 
         @Override
@@ -230,6 +263,24 @@ public class BleObdTransport {
                 throw new IOException("BLE connect timeout");
             }
             if (firstError != null) throw firstError;
+
+            // Some stacks never deliver onMtuChanged when the MTU was already
+            // negotiated (and requestMtu() itself can be rejected). Discovery
+            // used to be chained exclusively off that callback, so connect()
+            // would hang to the 10s timeout. Wait briefly, then start
+            // discovery ourselves — the CAS ensures only one path does.
+            CountDownLatch ml = mtuLatch;
+            if (ml != null && !ml.await(2, TimeUnit.SECONDS)) {
+                ObdLogger.get().log(ObdLogger.Level.INFO,
+                        "BLE MTU callback missing after 2s — starting discovery directly");
+            }
+            if (discoveryStarted.compareAndSet(false, true)) {
+                BluetoothGatt g = gatt;
+                if (g == null || !g.discoverServices()) {
+                    throw new IOException("discoverServices() rejected");
+                }
+            }
+
             if (!servicesLatch.await(10, TimeUnit.SECONDS)) {
                 throw new IOException("BLE service discovery timeout");
             }
@@ -253,15 +304,14 @@ public class BleObdTransport {
             throw new IOException("BLE connect interrupted");
         }
 
-        pipedIn = new PipedInputStream(8192);
-        rxSink = new PipedOutputStream(pipedIn);
-        bufIn = new BufferedInputStream(pipedIn);
+        bufIn = new BufferedInputStream(new RxQueueInputStream());
 
         txOut = new OutputStream() {
             @Override
             public void write(byte[] b, int off, int len) throws IOException {
-                for (int i = 0; i < len; i += BLE_CHUNK_SIZE) {
-                    int n = Math.min(BLE_CHUNK_SIZE, len - i);
+                int cs = chunkSize; // negotiated MTU-3, not the 20-byte default
+                for (int i = 0; i < len; i += cs) {
+                    int n = Math.min(cs, len - i);
                     byte[] chunk = new byte[n];
                     System.arraycopy(b, off + i, chunk, 0, n);
                     sendChunk(chunk);
@@ -358,11 +408,56 @@ public class BleObdTransport {
             writeChar = null;
             notifyChar = null;
         }
-        // close streams last so a reader blocked in pipedIn.read() sees EOF
-        try { if (rxSink != null) rxSink.close(); } catch (IOException ignored) {}
-        try { if (pipedIn != null) pipedIn.close(); } catch (IOException ignored) {}
-        rxSink = null;
-        pipedIn = null;
+        // Wake any reader blocked in the rx queue poll — it re-checks `closed`
+        // and returns EOF. The queue itself is left to be garbage-collected
+        // with the transport.
+        rxQueue.offer(new byte[0]);
+    }
+
+    /**
+     * InputStream over the notification queue. Unlike PipedInputStream it has
+     * no reader-thread affinity, so the poll thread can be killed and recreated
+     * freely without notifications landing in a dead pipe. available() is exact
+     * (queuedBytes covers the queue plus the partially-read head chunk), which
+     * the available()-then-read() pattern in every command pump relies on.
+     */
+    private final class RxQueueInputStream extends InputStream {
+        private byte[] cur;
+        private int pos;
+
+        @Override public int read() throws IOException {
+            byte[] one = new byte[1];
+            int n = read(one, 0, 1);
+            return n <= 0 ? -1 : (one[0] & 0xFF);
+        }
+
+        @Override public int read(byte[] b, int off, int len) throws IOException {
+            if (len == 0) return 0;
+            while (cur == null || pos >= cur.length) {
+                if (closed && rxQueue.isEmpty()) return -1;
+                try {
+                    byte[] next = rxQueue.poll(100, TimeUnit.MILLISECONDS);
+                    if (next != null && next.length > 0) {
+                        cur = next;
+                        pos = 0;
+                    } else if (closed) {
+                        return -1;
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new IOException("Interrupted");
+                }
+            }
+            int n = Math.min(len, cur.length - pos);
+            System.arraycopy(cur, pos, b, off, n);
+            pos += n;
+            queuedBytes.addAndGet(-n);
+            return n;
+        }
+
+        @Override public int available() {
+            return Math.max(0, queuedBytes.get());
+        }
     }
 
     /** Milliseconds since the adapter last delivered notification bytes, or -1 if never. */

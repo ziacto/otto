@@ -196,7 +196,14 @@ public class GarageController {
 
     /** Build CSV blob via ShareReport.buildCsv, write to external files dir, fire ACTION_SEND. */
     private void exportCsv(Context ctx) {
-        WorkDispatcher.io((Activity) (ctx instanceof Activity ? ctx : null),
+        // Activity must be real: with a non-Activity context the old code
+        // passed null and postUi silently dropped BOTH callbacks — export
+        // appeared to do nothing, no toast, no chooser.
+        if (!(ctx instanceof Activity)) {
+            Toast.makeText(ctx, "Export unavailable on this screen", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        WorkDispatcher.io((Activity) ctx,
                 () -> {
                     String csv = ShareReport.buildCsv(ctx);
                     String stamp = new SimpleDateFormat("yyyyMMdd-HHmm", Locale.US).format(new Date());

@@ -20,6 +20,13 @@ public class ObdManagerFast {
     private volatile boolean running = false;
     private Thread pollThread;
 
+    /**
+     * MAC of the device the live {@link #connection} was opened to. Used by
+     * {@link #connect} to detect and drop a duplicate connect to a device we're
+     * already linked to. Cleared on {@link #disconnect}.
+     */
+    private volatile String connectedMac;
+
     public ObdManagerFast(Context context,
                           SpeedPollerListener listener,
                           Supplier<Integer> intervalSupplier,
@@ -30,11 +37,45 @@ public class ObdManagerFast {
         this.commandSupplier = commandSupplier;
     }
 
-    public void connect(BluetoothDevice device) throws IOException {
+    /**
+     * Set while a connect() handshake is in flight so {@link #cancelConnect}
+     * can abort it without blocking on the manager monitor (connect holds the
+     * monitor for up to ~15s while the socket/GATT handshake runs).
+     */
+    private volatile ObdConnection pendingConnection;
+
+    public synchronized void connect(BluetoothDevice device) throws IOException {
+        // synchronized: auto-connect and a manual device tap can race into
+        // here. Unsynchronized, the loser's socket/GATT leaked and two poll
+        // threads ended up writing interleaved commands to one transport.
+        //
+        // Even serialized, the loser used to tear down the winner's perfectly
+        // healthy fresh link and re-run the whole ATZ handshake — the "double
+        // init" seen in diag logs when tryAutoConnect() (MainActivity) and the
+        // guided connect-flow worker (ConnectFlowController) both fire at
+        // startup. If we're already linked to this exact device, the second
+        // caller is redundant: skip it and keep the live session.
+        String mac = device == null ? null : device.getAddress();
+        if (mac != null && mac.equals(connectedMac)
+                && connection != null && connection.isConnected()) {
+            ObdLogger.get().log(ObdLogger.Level.INFO,
+                    "connect(): already linked to " + mac + " — skipping duplicate connect");
+            return;
+        }
         disconnect();
         resetCommandSupportState();
-        connection = new ObdConnection();
-        connection.connect(context, device);
+        ObdConnection c = new ObdConnection();
+        pendingConnection = c;
+        try {
+            c.connect(context, device);
+        } catch (IOException | RuntimeException e) {
+            try { c.disconnect(); } catch (Exception ignored) {}
+            throw e;
+        } finally {
+            pendingConnection = null;
+        }
+        connection = c;
+        connectedMac = mac;
         startPolling();
     }
 
@@ -44,12 +85,38 @@ public class ObdManagerFast {
      * ELM327 responses. Wired to the "Simulator Mode" drawer item and reused
      * by the Self-Test.
      */
-    public void connectSimulator() throws IOException {
+    public synchronized void connectSimulator() throws IOException {
         disconnect();
         resetCommandSupportState();
-        connection = new ObdConnection();
-        connection.connectSimulator();
+        ObdConnection c = new ObdConnection();
+        c.connectSimulator();
+        connection = c;
         startPolling();
+    }
+
+    /**
+     * Abort an in-flight {@link #connect} from another thread (Cancel in the
+     * connect flow). Closes the half-open transport so the blocked handshake
+     * unwinds with IOException — a plain Thread.interrupt() cannot unblock an
+     * RFCOMM connect(). Deliberately NOT synchronized: the whole point is to
+     * interrupt a thread that currently holds the manager monitor.
+     */
+    public void cancelConnect() {
+        ObdConnection c = pendingConnection;
+        if (c != null) {
+            ObdLogger.get().log(ObdLogger.Level.INFO, "Connect cancelled by user");
+            try { c.disconnect(); } catch (Exception ignored) {}
+        }
+    }
+
+    /**
+     * Post-init connection health. Public accessor so the connect flow does
+     * not have to reach into the private field via reflection (which R8
+     * renames in release builds, making health permanently UNKNOWN).
+     */
+    public ObdConnection.ConnectionHealth getConnectionHealth() {
+        ObdConnection c = connection;
+        return c == null ? ObdConnection.ConnectionHealth.UNKNOWN : c.getHealth();
     }
 
     /**
@@ -60,7 +127,7 @@ public class ObdManagerFast {
      */
     private void resetCommandSupportState() {
         try {
-            for (com.example.obd.MainActivity.PollGroup g : com.example.obd.MainActivity.PollGroup.values()) {
+            for (PollGroup g : PollGroup.values()) {
                 for (ObdCommand c : g.getSensors()) c.resetSupportState();
             }
         } catch (Throwable ignored) {}
@@ -73,7 +140,10 @@ public class ObdManagerFast {
      * Heavy hammer — joins the poll thread for up to 2s on the calling thread.
      * Don't call from the UI thread on dashboard switches; use {@link #swapPollGroup}.
      */
-    public void restartPolling() {
+    public synchronized void restartPolling() {
+        // synchronized: unsynchronized this raced disconnect() — the
+        // check-then-act on `connection` could leave running=true with no
+        // thread, or force-close the transport under a concurrent one-shot.
         stopAndJoinPollThread();
         if (connection != null && connection.isConnected()) {
             startPolling();
@@ -106,23 +176,85 @@ public class ObdManagerFast {
         }
         stopAndJoinPollThread();
         connection = null;
+        connectedMac = null;
     }
 
     public boolean isConnected() {
         return connection != null && connection.isConnected();
     }
 
+    /** Checked-IO callable for {@link #withPollPaused}/{@link #withModuleRouting} bodies. */
+    private interface IoCall<T> { T run() throws IOException; }
+
+    /**
+     * Run {@code body} with the poll thread stopped, restarting it afterwards
+     * no matter how the body exits. Every off-band operation (one-shots, UDS
+     * module reads, service routines, replay) used to hand-roll this
+     * stop/finally-restart dance — 15 copies, several of which forgot part of
+     * the teardown.
+     */
+    private synchronized <T> T withPollPaused(IoCall<T> body) throws IOException {
+        if (connection == null || !connection.isConnected()) {
+            throw new IOException("Not connected");
+        }
+        stopAndJoinPollThread();
+        try {
+            return body.run();
+        } finally {
+            if (connection != null && connection.isConnected()) startPolling();
+        }
+    }
+
+    /**
+     * Run {@code body} with D-CAN routing set up for {@code module}, always
+     * restoring functional addressing afterwards — including the TX header.
+     * The old per-method teardowns only reset the RX side (ATCRA/ATAR), so
+     * after any module read every Mode-01 poll kept transmitting on 6F1, the
+     * DME ignored the requests, and the dashboard went dead until reconnect
+     * ("NO DATA" on everything, then the PIDs got marked unsupported).
+     */
+    private <T> T withModuleRouting(BmwModule module, IoCall<T> body) throws IOException {
+        // setupModuleRouting must be INSIDE the try — it sends 6 AT commands
+        // back to back (ATCAF1/ATSH/ATCRA/ATFCSH/ATFCSD/ATFCSM). On real
+        // hardware, especially across a 13-module full scan firing ~78 of
+        // these in a row, any single one of them can time out or get
+        // interrupted. If setup throws while sitting outside this try block,
+        // restoreFunctionalRouting() never runs and the header is stuck on
+        // the module's tester address (6F1) permanently — every subsequent
+        // Mode-01 poll returns "NO DATA" forever (adapter-local reads like
+        // Battery Voltage/ATRV keep working, which is the telltale sign).
+        try {
+            setupModuleRouting(module);
+            return body.run();
+        } finally {
+            restoreFunctionalRouting();
+        }
+    }
+
+    /** Best-effort routing teardown — must not throw, or it would mask the body's result. */
+    private void restoreFunctionalRouting() {
+        try {
+            sendAt("ATSH 7DF"); // back to the functional broadcast header for Mode 01
+            sendAt("ATCRA");
+            sendAt("ATAR");
+            // setupModuleRouting switches to manual flow control (ATFCSM 1)
+            // addressed at the module's tester ID — undo it, or every poll
+            // for the rest of the session runs in manual FC mode pointed at
+            // a module address that's no longer relevant.
+            sendAt("ATFCSM0");
+        } catch (IOException e) {
+            ObdLogger.get().log(ObdLogger.Level.ERROR,
+                    "Routing restore failed: " + e.getMessage());
+        }
+    }
+
     /**
      * Run a one-shot OBD command (e.g. Mode 03/04/07) while the poll thread is paused.
      * Returns the raw ELM327 response text up to the '>' prompt.
      */
-    private synchronized String sendOneShot(String cmd) throws IOException {
-        if (connection == null || !connection.isConnected()) {
-            throw new IOException("Not connected");
-        }
-        ObdLogger.get().log(ObdLogger.Level.TX, cmd);
-        stopAndJoinPollThread();
-        try {
+    private String sendOneShot(String cmd) throws IOException {
+        return withPollPaused(() -> {
+            ObdLogger.get().log(ObdLogger.Level.TX, cmd);
             BufferedInputStream in = connection.getInput();
             OutputStream out = connection.getOutput();
             // Flush any leftover bytes
@@ -147,9 +279,7 @@ public class ObdManagerFast {
             String raw = sb.toString().trim();
             ObdLogger.get().log(ObdLogger.Level.RX, raw);
             return raw;
-        } finally {
-            if (connection != null && connection.isConnected()) startPolling();
-        }
+        });
     }
 
     /** Read DTCs via Mode 03 (stored), 07 (pending), or 0A (permanent). Blocking — call off main thread. */
@@ -183,22 +313,10 @@ public class ObdManagerFast {
      * Returns an empty list if the module didn't respond or returned no codes.
      * Throws IOException only on connection-level failure.
      */
-    public synchronized List<String> readModuleDtcs(BmwModule module) throws IOException {
-        if (connection == null || !connection.isConnected()) {
-            throw new IOException("Not connected");
-        }
-        stopAndJoinPollThread();
-        try {
+    public List<String> readModuleDtcs(BmwModule module) throws IOException {
+        return withPollPaused(() -> withModuleRouting(module, () -> {
             ObdLogger.get().log(ObdLogger.Level.INFO,
                     "Module read: " + module.name() + " (resp " + module.responseId + ")");
-            // Set up D-CAN routing for this module
-            sendAt("ATCAF1");                    // CAN auto-format on (we want ISO-TP framing)
-            sendAt("ATSH 6F1");                  // tester header
-            sendAt("ATCRA " + module.responseId);// listen only for this module's response
-            sendAt("ATFCSH 6F1");                // flow control source = tester
-            sendAt("ATFCSD 30 00 00");           // flow control: continuous, no delay
-            sendAt("ATFCSM 1");                  // flow control mode: use the above
-
             // Build target byte from module header hint (second byte). DME=12, DSC=29, EGS=18.
             String tgt = module.headerHint.split(" ")[1];
             // UDS read DTCs by status mask, mask 0xFF
@@ -206,19 +324,13 @@ public class ObdManagerFast {
             String raw = sendRawNoTimeout(cmd);
             ObdLogger.get().log(ObdLogger.Level.RX, "module< " + raw);
 
-            // Reset filters so subsequent generic polls work
-            sendAt("ATCRA");
-            sendAt("ATAR");
-
             if (raw == null || raw.toUpperCase().contains("NO DATA")
                     || raw.toUpperCase().contains("CAN ERROR")
                     || raw.toUpperCase().contains("BUS")) {
                 return Collections.emptyList();
             }
             return BmwDtcParser.parseUdsDtcResponse(raw);
-        } finally {
-            if (connection != null && connection.isConnected()) startPolling();
-        }
+        }));
     }
 
     /** Best-effort AT command — logs TX, drains response up to '>'. */
@@ -276,21 +388,10 @@ public class ObdManagerFast {
      * Returns null if the module did not answer, the response was malformed, or the
      * decoder rejected the data. Call off the UI thread — pauses the poll loop.
      */
-    public synchronized Double readMode22Pid(BmwMode22Pid.Did pid) throws IOException {
-        if (connection == null || !connection.isConnected()) {
-            throw new IOException("Not connected");
-        }
-        stopAndJoinPollThread();
-        try {
+    public Double readMode22Pid(BmwMode22Pid.Did pid) throws IOException {
+        return withPollPaused(() -> withModuleRouting(pid.module, () -> {
             ObdLogger.get().log(ObdLogger.Level.INFO,
                     "Mode22 " + pid.name() + " (" + pid.didHex() + ") on " + pid.module.name());
-
-            sendAt("ATCAF1");
-            sendAt("ATSH 6F1");
-            sendAt("ATCRA " + pid.module.responseId);
-            sendAt("ATFCSH 6F1");
-            sendAt("ATFCSD 30 00 00");
-            sendAt("ATFCSM 1");
 
             // BMW request layout: <target> 22 <did-hi> <did-lo>
             String tgt = pid.module.headerHint.split(" ")[1];
@@ -298,51 +399,37 @@ public class ObdManagerFast {
             String raw = sendRawNoTimeout(cmd);
             ObdLogger.get().log(ObdLogger.Level.RX, "m22< " + raw);
 
-            sendAt("ATCRA");
-            sendAt("ATAR");
-
             byte[] data = BmwMode22Pid.parseMode22Data(raw, pid.did);
             if (data.length == 0) return null;
             return pid.decoder.decode(data);
-        } finally {
-            if (connection != null && connection.isConnected()) startPolling();
-        }
+        }));
     }
 
     /** Read a batch of Mode 22 PIDs that share a target module — cheaper than per-call init. */
-    public synchronized java.util.LinkedHashMap<BmwMode22Pid.Did, Double> readMode22Batch(
+    public java.util.LinkedHashMap<BmwMode22Pid.Did, Double> readMode22Batch(
             java.util.List<BmwMode22Pid.Did> pids) throws IOException {
         java.util.LinkedHashMap<BmwMode22Pid.Did, Double> out = new java.util.LinkedHashMap<>();
         if (pids == null || pids.isEmpty()) return out;
-        if (connection == null || !connection.isConnected()) {
-            throw new IOException("Not connected");
-        }
-        stopAndJoinPollThread();
-        try {
-            BmwModule prev = null;
-            for (BmwMode22Pid.Did pid : pids) {
-                if (pid.module != prev) {
-                    sendAt("ATCAF1");
-                    sendAt("ATSH 6F1");
-                    sendAt("ATCRA " + pid.module.responseId);
-                    sendAt("ATFCSH 6F1");
-                    sendAt("ATFCSD 30 00 00");
-                    sendAt("ATFCSM 1");
-                    prev = pid.module;
+        return withPollPaused(() -> {
+            try {
+                BmwModule prev = null;
+                for (BmwMode22Pid.Did pid : pids) {
+                    if (pid.module != prev) {
+                        setupModuleRouting(pid.module);
+                        prev = pid.module;
+                    }
+                    String tgt = pid.module.headerHint.split(" ")[1];
+                    String cmd = String.format("%s 22 %02X %02X", tgt,
+                            (pid.did >> 8) & 0xFF, pid.did & 0xFF);
+                    String raw = sendRawNoTimeout(cmd);
+                    byte[] data = BmwMode22Pid.parseMode22Data(raw, pid.did);
+                    out.put(pid, data.length == 0 ? null : pid.decoder.decode(data));
                 }
-                String tgt = pid.module.headerHint.split(" ")[1];
-                String cmd = String.format("%s 22 %02X %02X", tgt,
-                        (pid.did >> 8) & 0xFF, pid.did & 0xFF);
-                String raw = sendRawNoTimeout(cmd);
-                byte[] data = BmwMode22Pid.parseMode22Data(raw, pid.did);
-                out.put(pid, data.length == 0 ? null : pid.decoder.decode(data));
+                return out;
+            } finally {
+                restoreFunctionalRouting();
             }
-            sendAt("ATCRA");
-            sendAt("ATAR");
-            return out;
-        } finally {
-            if (connection != null && connection.isConnected()) startPolling();
-        }
+        });
     }
 
     /** Read Mode 01 PID 01 readiness monitors. Returns null if ECU did not respond. */
@@ -375,7 +462,10 @@ public class ObdManagerFast {
         java.util.LinkedHashMap<String, String> out = new java.util.LinkedHashMap<>();
         for (int i = 0; i < pids.length; i++) {
             int pid = pids[i][0];
-            String raw = sendOneShot(String.format("02%02X", pid));
+            // J1979 Mode 02 requires PID + frame number ("02 0C 00") — the
+            // 2-byte form without the frame byte gets NRC'd or ignored by
+            // most ECUs, which made every freeze-frame field read "—".
+            String raw = sendOneShot(String.format("02%02X00", pid));
             String val = ObdUtil.parseFreezeFramePid(raw, pid);
             out.put(labels[i], val == null ? "—" : val);
         }
@@ -417,13 +507,10 @@ public class ObdManagerFast {
      *   0x1011 — vehicle operational data 2
      *   0x3F07 — module functional state
      */
-    public synchronized java.util.List<VehicleDataReading> readVehicleData(
+    public java.util.List<VehicleDataReading> readVehicleData(
             BmwModule module, int[] dids, String[] labels) throws IOException {
-        if (connection == null || !connection.isConnected()) throw new IOException("Not connected");
-        stopAndJoinPollThread();
-        java.util.ArrayList<VehicleDataReading> out = new java.util.ArrayList<>();
-        try {
-            setupModuleRouting(module);
+        return withPollPaused(() -> withModuleRouting(module, () -> {
+            java.util.ArrayList<VehicleDataReading> out = new java.util.ArrayList<>();
             String tgt = module.headerHint.split(" ")[1];
             for (int i = 0; i < dids.length; i++) {
                 int did = dids[i];
@@ -435,12 +522,15 @@ public class ObdManagerFast {
                     continue;
                 }
                 String u = raw.toUpperCase();
+                // 7F 22 xx = negative response. Check the whitespace-stripped
+                // hex — ELM output is spaced ("7F 22 31"), so matching "7F22"
+                // against the raw string never fired.
+                String hex = ObdUtil.collectHex(raw);
                 if (u.contains("NO DATA") || u.contains("CAN ERROR") || u.contains("BUS")
-                        || u.contains("7F22")) {  // 0x7F = negative response
+                        || hex.contains("7F22")) {
                     out.add(new VehicleDataReading(did, label, "", "", false));
                     continue;
                 }
-                String hex = ObdUtil.collectHex(raw);
                 String marker = String.format("62%04X", did);
                 int idx = hex.indexOf(marker);
                 if (idx < 0) {
@@ -458,12 +548,8 @@ public class ObdManagerFast {
                 }
                 out.add(new VehicleDataReading(did, label, payload, ascii.toString(), true));
             }
-            sendAt("ATCRA");
-            sendAt("ATAR");
-        } finally {
-            if (connection != null && connection.isConnected()) startPolling();
-        }
-        return out;
+            return out;
+        }));
     }
 
     /**
@@ -471,37 +557,24 @@ public class ObdManagerFast {
      * don't speak UDS. Returns the raw response hex, or null if the module didn't
      * respond. Some older E46/E60 modules respond to KWP but not UDS.
      */
-    public synchronized String readKwpEcuId(BmwModule module) throws IOException {
-        if (connection == null || !connection.isConnected()) throw new IOException("Not connected");
-        stopAndJoinPollThread();
-        try {
-            setupModuleRouting(module);
+    public String readKwpEcuId(BmwModule module) throws IOException {
+        return withPollPaused(() -> withModuleRouting(module, () -> {
             String tgt = module.headerHint.split(" ")[1];
             String cmd = tgt + " 1A 80";
             String raw = sendRawNoTimeout(cmd);
-            sendAt("ATCRA");
-            sendAt("ATAR");
             if (raw == null) return null;
             String u = raw.toUpperCase();
             if (u.contains("NO DATA") || u.contains("CAN ERROR") || u.contains("BUS")) return null;
             return raw.trim();
-        } finally {
-            if (connection != null && connection.isConnected()) startPolling();
-        }
+        }));
     }
 
     /**
      * Run a single ObdCommand off-band (poll thread paused). Returns the parsed numeric value.
      * Used by the Odometer screen for one-shot reads of PIDs that aren't in the regular poll group.
      */
-    public synchronized double runOneShot(ObdCommand cmd) throws IOException {
-        if (connection == null || !connection.isConnected()) throw new IOException("Not connected");
-        stopAndJoinPollThread();
-        try {
-            return cmd.run(connection.getInput(), connection.getOutput());
-        } finally {
-            if (connection != null && connection.isConnected()) startPolling();
-        }
+    public double runOneShot(ObdCommand cmd) throws IOException {
+        return withPollPaused(() -> cmd.run(connection.getInput(), connection.getOutput()));
     }
 
     /**
@@ -519,32 +592,48 @@ public class ObdManagerFast {
      * exactly what the ECU said, rather than have the plumbing swallow non-
      * positive replies. Blocking; call off the UI thread.
      */
-    public synchronized String readUdsRawResponse(BmwModule module, int did) throws IOException {
-        if (connection == null || !connection.isConnected()) throw new IOException("Not connected");
-        stopAndJoinPollThread();
-        try {
-            setupModuleRouting(module);
+    public String readUdsRawResponse(BmwModule module, int did) throws IOException {
+        return withPollPaused(() -> withModuleRouting(module, () -> {
             String tgt = module.headerHint.split(" ")[1];
             String cmd = String.format("%s 22 %02X %02X", tgt, (did >> 8) & 0xFF, did & 0xFF);
             String raw = sendRawNoTimeout(cmd);
-            sendAt("ATCRA");
-            sendAt("ATAR");
             return raw == null ? "" : raw.trim();
-        } finally {
-            if (connection != null && connection.isConnected()) startPolling();
-        }
+        }));
     }
 
-    public synchronized Double readUdsRawNumeric(BmwModule module, int did, int byteCount) throws IOException {
-        if (connection == null || !connection.isConnected()) throw new IOException("Not connected");
-        stopAndJoinPollThread();
-        try {
-            setupModuleRouting(module);
+    /**
+     * Read several UDS Mode-22 DIDs from ONE module in a single paused, routed
+     * session. Returns raw ELM327 response strings keyed by DID (insertion
+     * order preserved).
+     *
+     * The fuel-level probe walks 4 candidate DME DIDs. Doing that with four
+     * separate {@link #readUdsRawResponse} calls stopped and restarted the poll
+     * thread four times AND flipped D-CAN routing (functional ↔ module tester
+     * header) four times — which the diag log showed as repeated "Poll loop
+     * start" churn plus a full "NO DATA" dashboard cycle each time the header
+     * snapped back to functional addressing. Batching keeps the loop stopped
+     * once and the tester header set for all reads, so routing settles a single
+     * time. Same one-session pattern as {@link #readModuleId}.
+     */
+    public java.util.LinkedHashMap<Integer, String> readUdsRawBatch(BmwModule module, int... dids)
+            throws IOException {
+        return withPollPaused(() -> withModuleRouting(module, () -> {
+            String tgt = module.headerHint.split(" ")[1];
+            java.util.LinkedHashMap<Integer, String> out = new java.util.LinkedHashMap<>();
+            for (int did : dids) {
+                String cmd = String.format("%s 22 %02X %02X", tgt, (did >> 8) & 0xFF, did & 0xFF);
+                String raw = sendRawNoTimeout(cmd);
+                out.put(did, raw == null ? "" : raw.trim());
+            }
+            return out;
+        }));
+    }
+
+    public Double readUdsRawNumeric(BmwModule module, int did, int byteCount) throws IOException {
+        return withPollPaused(() -> withModuleRouting(module, () -> {
             String tgt = module.headerHint.split(" ")[1];
             String cmd = String.format("%s 22 %02X %02X", tgt, (did >> 8) & 0xFF, did & 0xFF);
             String raw = sendRawNoTimeout(cmd);
-            sendAt("ATCRA");
-            sendAt("ATAR");
             if (raw == null) return null;
             String hex = ObdUtil.collectHex(raw);
             String marker = String.format("62%04X", did);
@@ -558,9 +647,7 @@ public class ObdManagerFast {
                 value = (value << 8) | b;
             }
             return (double) value;
-        } finally {
-            if (connection != null && connection.isConnected()) startPolling();
-        }
+        }));
     }
 
     /** ECU identification record — part number, software version, hardware version. */
@@ -585,23 +672,16 @@ public class ObdManagerFast {
      * F191 hardware number). Returns nulls for fields the module doesn't answer.
      * Call off the main thread — pauses the poll loop.
      */
-    public synchronized ModuleIdentification readModuleId(BmwModule module) throws IOException {
-        if (connection == null || !connection.isConnected()) throw new IOException("Not connected");
-        stopAndJoinPollThread();
-        try {
+    public ModuleIdentification readModuleId(BmwModule module) throws IOException {
+        return withPollPaused(() -> withModuleRouting(module, () -> {
             ObdLogger.get().log(ObdLogger.Level.INFO, "ID read: " + module.name());
-            setupModuleRouting(module);
             String tgt = module.headerHint.split(" ")[1];
             String pn = readUdsAsciiDid(tgt, 0xF187);
             String sw = readUdsAsciiDid(tgt, 0xF189);
             String vin = readUdsAsciiDid(tgt, 0xF190);
             String hw = readUdsAsciiDid(tgt, 0xF191);
-            sendAt("ATCRA");
-            sendAt("ATAR");
             return new ModuleIdentification(module, pn, sw, hw, vin);
-        } finally {
-            if (connection != null && connection.isConnected()) startPolling();
-        }
+        }));
     }
 
     /** Read a UDS DID and decode the data bytes as ASCII (trimmed of nulls). Returns null on no-data. */
@@ -665,26 +745,28 @@ public class ObdManagerFast {
      * WARNING: this writes to the DME's persistent storage. Only run with the user's
      * informed consent and with engine OFF + ignition ON (Terminal 15).
      */
-    public synchronized boolean resetCbsCounter(CbsItem item) throws IOException {
-        if (connection == null || !connection.isConnected()) throw new IOException("Not connected");
-        stopAndJoinPollThread();
-        try {
+    public boolean resetCbsCounter(CbsItem item) throws IOException {
+        return withPollPaused(() -> withModuleRouting(BmwModule.DME, () -> {
             ObdLogger.get().log(ObdLogger.Level.INFO, "CBS reset: " + item.label);
-            setupModuleRouting(BmwModule.DME);
             String tgt = BmwModule.DME.headerHint.split(" ")[1];
             // UDS RoutineControl: 31 01 DF 60 <item-byte>
             String cmd = String.format("%s 31 01 DF 60 %02X", tgt, item.subFn);
             String raw = sendRawNoTimeout(cmd);
             ObdLogger.get().log(ObdLogger.Level.RX, "cbs< " + raw);
-            sendAt("ATCRA");
-            sendAt("ATAR");
             if (raw == null) return false;
             String hex = ObdUtil.collectHex(raw);
-            // Positive response: 71 01 DF 60 <item> — first byte 0x71 = service 0x31 + 0x40
-            return hex.contains("7101DF60") || hex.contains("710 1DF60") || hex.startsWith("7101");
-        } finally {
-            if (connection != null && connection.isConnected()) startPolling();
-        }
+            // 7F 31 xx = the DME rejected the routine (wrong session/security).
+            // Surface that distinctly — this writes persistent ECU state, so a
+            // "maybe" must never be reported as success.
+            if (hex.contains("7F31")) {
+                ObdLogger.get().log(ObdLogger.Level.ERROR,
+                        "CBS reset rejected by DME (7F 31): " + raw);
+                return false;
+            }
+            // Positive response must echo THIS routine: 71 01 DF 60. The old
+            // startsWith("7101") accepted an ack for any routine.
+            return hex.contains("7101DF60");
+        }));
     }
 
     /** Battery chemistry types supported by the E65 IBS. */
@@ -712,16 +794,13 @@ public class ObdManagerFast {
      * under-charging. Always verify the new battery sticker before running.
      * Returns true on positive ECU acknowledgement.
      */
-    public synchronized boolean registerBattery(int capacityAh, BatteryType type) throws IOException {
-        if (connection == null || !connection.isConnected()) throw new IOException("Not connected");
+    public boolean registerBattery(int capacityAh, BatteryType type) throws IOException {
         if (capacityAh < 40 || capacityAh > 110) {
             throw new IllegalArgumentException("Capacity out of range (40-110 Ah)");
         }
-        stopAndJoinPollThread();
-        try {
+        return withPollPaused(() -> withModuleRouting(BmwModule.DME, () -> {
             ObdLogger.get().log(ObdLogger.Level.INFO,
                     "Battery register: " + capacityAh + "Ah " + type.label);
-            setupModuleRouting(BmwModule.DME);
             String tgt = BmwModule.DME.headerHint.split(" ")[1];
             // UDS RoutineControl: 31 01 DF 50 <cap_hi> <cap_lo> <chemistry>
             int capHi = (capacityAh >> 8) & 0xFF;
@@ -730,14 +809,17 @@ public class ObdManagerFast {
                     tgt, capHi, capLo, type.code);
             String raw = sendRawNoTimeout(cmd);
             ObdLogger.get().log(ObdLogger.Level.RX, "batreg< " + raw);
-            sendAt("ATCRA");
-            sendAt("ATAR");
             if (raw == null) return false;
             String hex = ObdUtil.collectHex(raw);
-            return hex.contains("7101DF50") || hex.startsWith("7101");
-        } finally {
-            if (connection != null && connection.isConnected()) startPolling();
-        }
+            // Same strictness as CBS reset: only an ack for THIS routine
+            // counts, and a 7F 31 rejection is an explicit failure.
+            if (hex.contains("7F31")) {
+                ObdLogger.get().log(ObdLogger.Level.ERROR,
+                        "Battery registration rejected by DME (7F 31): " + raw);
+                return false;
+            }
+            return hex.contains("7101DF50");
+        }));
     }
 
     /**
@@ -811,7 +893,12 @@ public class ObdManagerFast {
                     if (in.available() > 0) in.read();
                     else { try { Thread.sleep(20); } catch (InterruptedException ignored) {} }
                 }
-                sendAt("ATCAF1"); // restore for normal operation
+                // Restore everything startSniffer changed — ATH1 in particular:
+                // with headers left on, every Mode-01 response arrives as
+                // "7E8 03 41 0C ..." and the positive-response marker lands
+                // mis-aligned, so polling silently fails after a capture.
+                sendAt("ATCAF1");
+                sendAt("ATH0");
             }
         } finally {
             if (connection != null && connection.isConnected()) startPolling();
@@ -824,33 +911,35 @@ public class ObdManagerFast {
      * {@link #readSnifferLine} ("ID HEX HEX HEX ..."). Returns the number of frames
      * the ELM327 accepted (positive response). DANGEROUS: replay can affect the car.
      */
-    public synchronized int replayFrames(java.util.List<String> frames, int intervalMs) throws IOException {
-        if (connection == null || !connection.isConnected()) throw new IOException("Not connected");
-        stopAndJoinPollThread();
-        int sent = 0;
-        try {
-            sendAt("ATCAF0");
-            for (String frame : frames) {
-                String[] parts = frame.trim().split("\\s+");
-                if (parts.length < 2) continue;
-                String id = parts[0];
-                StringBuilder data = new StringBuilder();
-                for (int i = 1; i < parts.length; i++) data.append(parts[i]);
-                sendAt("ATSH " + id);
-                sendRawNoTimeout(data.toString());
-                sent++;
-                if (intervalMs > 0) {
-                    try { Thread.sleep(intervalMs); } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt(); break;
+    public int replayFrames(java.util.List<String> frames, int intervalMs) throws IOException {
+        return withPollPaused(() -> {
+            int sent = 0;
+            try {
+                sendAt("ATCAF0");
+                for (String frame : frames) {
+                    String[] parts = frame.trim().split("\\s+");
+                    if (parts.length < 2) continue;
+                    String id = parts[0];
+                    StringBuilder data = new StringBuilder();
+                    for (int i = 1; i < parts.length; i++) data.append(parts[i]);
+                    sendAt("ATSH " + id);
+                    sendRawNoTimeout(data.toString());
+                    sent++;
+                    if (intervalMs > 0) {
+                        try { Thread.sleep(intervalMs); } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt(); break;
+                        }
                     }
                 }
+            } finally {
+                // The replay loop leaves the TX header on the last replayed ID —
+                // restore functional addressing (7DF, not 6F1) and auto-format
+                // so Mode-01 polling works when it resumes.
+                try { sendAt("ATCAF1"); } catch (IOException ignored) { }
+                restoreFunctionalRouting();
             }
-            sendAt("ATSH 6F1");
-            sendAt("ATCAF1");
-        } finally {
-            if (connection != null && connection.isConnected()) startPolling();
-        }
-        return sent;
+            return sent;
+        });
     }
 
     private synchronized void startPolling() {
@@ -919,6 +1008,8 @@ public class ObdManagerFast {
 
             List<ObdCommand> commands = commandSupplier.get();
             boolean anySuccess = false;
+            int attempted = 0; // commands actually sent (not skipped as unsupported)
+            boolean swapped = false; // set when our own interrupt (group swap) aborts the cycle
 
             for (ObdCommand cmd : commands) {
                 if (!running) return;
@@ -929,6 +1020,7 @@ public class ObdManagerFast {
                 // speedup on BMW E65: 8 of 11 dashboard PIDs return NRC every
                 // cycle otherwise, wasting ~2 s of adapter time on garbage.
                 if (cmd.isKnownUnsupported()) continue;
+                attempted++;
                 try {
                     double value = cmd.run(c.getInput(), c.getOutput());
                     listener.onValue(name, value, cmd.getUnit());
@@ -944,6 +1036,20 @@ public class ObdManagerFast {
                     // the transition success->fail so we can see *why* the user
                     // suddenly sees no data.
                     String msg = e.getMessage() == null ? "" : e.getMessage();
+                    // An "Interrupted" here is OUR OWN signal, not a device
+                    // fault: swapPollGroup() interrupts the thread to switch
+                    // groups immediately, and stopAndJoinPollThread() interrupts
+                    // to stop. The interrupt can land mid-read, aborting the
+                    // in-flight command. Logging that as "Poll FAIL", marking
+                    // the PID unhealthy, and counting it toward the 3-empty-
+                    // cycle disconnect were all wrong — it produced the
+                    // "Interrupted" storm in diag logs on every screen switch.
+                    if (msg.endsWith("Interrupted")) {
+                        Thread.interrupted(); // clear flag so the next IO doesn't rethrow
+                        if (!running) return; // stop requested: exit cleanly
+                        swapped = true;       // group swap: drop the rest of this cycle
+                        break;
+                    }
                     if (cmdHealth.get(name) != Boolean.FALSE) {
                         ObdLogger.get().log(ObdLogger.Level.ERROR,
                                 "Poll FAIL: " + name + " — " + msg);
@@ -955,10 +1061,19 @@ public class ObdManagerFast {
                     // the rest of the poll cycle — bail out immediately so the
                     // reconnect watchdog can start a new session ~30s sooner
                     // than the 3-empty-cycle rule would.
-                    if (msg.toLowerCase().contains("broken pipe")
-                            || msg.toLowerCase().contains("connection reset")
-                            || msg.toLowerCase().contains("stream closed")
-                            || msg.toLowerCase().contains("socket closed")) {
+                    String lower = msg.toLowerCase();
+                    if (lower.contains("broken pipe")
+                            || lower.contains("connection reset")
+                            || lower.contains("stream closed")
+                            || lower.contains("socket closed")
+                            || lower.contains("pipe closed")          // BLE rx stream
+                            || lower.contains("transport closed")) {  // BLE tx path
+                        // If running is already false, a user/manager-initiated
+                        // disconnect() holds the monitor and closed the transport
+                        // under us — calling disconnect() here would block on that
+                        // monitor and force the joiner into its 2s timeout. Just
+                        // exit; the initiator finishes the teardown.
+                        if (!running) return;
                         ObdLogger.get().log(ObdLogger.Level.ERROR,
                                 "Poll socket dead — forcing disconnect");
                         listener.onError("OBD adapter disconnected");
@@ -968,7 +1083,23 @@ public class ObdManagerFast {
                 }
             }
 
+            // A group swap aborted this cycle partway through. Don't judge the
+            // adapter on a cycle we cut short — reset the empty counter and loop
+            // straight into the new group (no trailing sleep) so it takes effect
+            // now, which is the whole point of swapPollGroup().
+            if (swapped) {
+                emptycycles = 0;
+                firstCycle = true; // land a fresh value fast, like a new connect
+                continue;
+            }
+
             if (anySuccess) {
+                emptycycles = 0;
+            } else if (attempted == 0) {
+                // Every command in the group is marked unsupported — nothing was
+                // actually sent, so "no success" says nothing about the adapter.
+                // Counting these cycles used to disconnect a perfectly healthy
+                // session (very possible on the E65, where most Mode-01 PIDs NRC).
                 emptycycles = 0;
             } else {
                 emptycycles++;
@@ -1008,6 +1139,11 @@ public class ObdManagerFast {
             }
         }
 
+        // Post-loop tail: only self-disconnect if WE noticed the link die.
+        // When running was flipped false by a user/manager disconnect(), that
+        // caller holds the monitor mid-teardown — re-entering disconnect()
+        // here would block and trip the 2s join timeout every time.
+        if (!running) return;
         ObdConnection conn = connection;
         if (conn != null && !conn.isConnected()) {
             listener.onError("OBD adapter disconnected");

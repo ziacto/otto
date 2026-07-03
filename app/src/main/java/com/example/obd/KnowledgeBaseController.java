@@ -21,6 +21,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Knowledge Base screen for E65 730li reference content.
@@ -55,31 +56,54 @@ public class KnowledgeBaseController {
     private JSONObject proceduresJson;
     private JSONObject systemsJson;
 
+    // Bumped on every attach/detach so a background load started for a previous
+    // attach can't populate views that have since been torn down.
+    private int loadGeneration = 0;
+
     public void attach(View view) {
         this.root = view;
         this.ctx = view.getContext();
         tabRow = view.findViewById(R.id.kbTabRow);
         content = view.findViewById(R.id.kbContent);
 
-        DtcDictionary.get().loadIfNeeded(ctx);
-        loadAllJson();
         buildTabs();
-        showSection(0);
+        currentTab = 0;
+        highlightTabs();
+        addEmpty("Loading knowledge base…");
+
+        // Parsing five JSON assets inline froze the first open of this screen, so the
+        // work runs on the shared pool and only the finished objects touch the UI.
+        // The app context is captured because this.ctx is nulled on detach.
+        final int gen = ++loadGeneration;
+        final Context appCtx = ctx.getApplicationContext();
+        WorkDispatcher.io(() -> {
+            DtcDictionary.get().loadIfNeeded(appCtx);
+            final JSONObject faults = readAssetJson(appCtx, "knowledge/faults.json");
+            final JSONObject fuses = readAssetJson(appCtx, "knowledge/fuses.json");
+            final JSONObject maintenance = readAssetJson(appCtx, "knowledge/maintenance.json");
+            final JSONObject procedures = readAssetJson(appCtx, "knowledge/procedures.json");
+            final JSONObject systems = readAssetJson(appCtx, "knowledge/systems.json");
+            // View.post is thread-safe; the generation check runs on the UI thread,
+            // the same thread detach() runs on, so there is no race with teardown.
+            view.post(() -> {
+                if (gen != loadGeneration || content == null) return; // detached mid-load
+                faultsJson = faults;
+                fusesJson = fuses;
+                maintenanceJson = maintenance;
+                proceduresJson = procedures;
+                systemsJson = systems;
+                // currentTab, not 0: the user may have tapped a tab while loading.
+                showSection(currentTab);
+            });
+        });
     }
 
     public void detach() {
+        loadGeneration++; // invalidate any in-flight background load
         root = null;
         tabRow = null;
         content = null;
         ctx = null;
-    }
-
-    private void loadAllJson() {
-        faultsJson = readAssetJson("knowledge/faults.json");
-        fusesJson = readAssetJson("knowledge/fuses.json");
-        maintenanceJson = readAssetJson("knowledge/maintenance.json");
-        proceduresJson = readAssetJson("knowledge/procedures.json");
-        systemsJson = readAssetJson("knowledge/systems.json");
     }
 
     private void buildTabs() {
@@ -227,7 +251,8 @@ public class KnowledgeBaseController {
                 int amp = f.optInt("amp", 0);
                 String circuit = f.optString("circuit", "");
                 TextView row = new TextView(ctx);
-                row.setText(String.format("%s  %dA  %s", no, amp, circuit));
+                // Locale.US so digits stay Western Arabic even in Arabic-digit locales
+                row.setText(String.format(Locale.US, "%s  %dA  %s", no, amp, circuit));
                 row.setTextColor(Color.parseColor("#E0E0E0"));
                 row.setTextSize(11);
                 row.setTypeface(Typeface.MONOSPACE);
@@ -318,7 +343,7 @@ public class KnowledgeBaseController {
                 String action = s.optString("action", "");
                 String ifFail = s.optString("if_fail", "");
                 TextView stepView = new TextView(ctx);
-                stepView.setText(String.format("Step %d: %s", n, action));
+                stepView.setText(String.format(Locale.US, "Step %d: %s", n, action));
                 stepView.setTextColor(Color.parseColor("#E0E0E0"));
                 stepView.setTextSize(12);
                 stepView.setPadding(0, dp(4), 0, dp(2));
@@ -571,7 +596,8 @@ public class KnowledgeBaseController {
         return out;
     }
 
-    private JSONObject readAssetJson(String path) {
+    /** Runs on a background thread — takes an explicit Context because this.ctx is nulled on detach. */
+    private static JSONObject readAssetJson(Context ctx, String path) {
         try (BufferedReader r = new BufferedReader(new InputStreamReader(
                 ctx.getAssets().open(path), StandardCharsets.UTF_8))) {
             StringBuilder sb = new StringBuilder();

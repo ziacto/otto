@@ -21,7 +21,7 @@ public class DistanceSinceClearedCommand extends ObdCommand {
     @Override
     public double parseResult(String rawResponse) {
         String[] parts = rawResponse.split(" ");
-        if (parts.length < 4) return 0;
+        if (parts.length < 4) throw new IllegalStateException("Truncated response [" + getName() + "]: " + rawResponse);
         int A = Integer.parseInt(parts[2], 16);
         int B = Integer.parseInt(parts[3], 16);
         return (A * 256) + B;

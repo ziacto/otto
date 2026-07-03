@@ -10,7 +10,7 @@ public class TimingAdvanceCommand extends ObdCommand {
     @Override
     public double parseResult(String rawResponse) {
         String[] parts = rawResponse.split(" ");
-        if (parts.length < 3) return 0;
+        if (parts.length < 3) throw new IllegalStateException("Truncated response [" + getName() + "]: " + rawResponse);
         int A = Integer.parseInt(parts[2], 16);
         return (A / 2.0) - 64.0;
     }

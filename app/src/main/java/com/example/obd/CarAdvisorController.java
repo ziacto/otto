@@ -23,14 +23,7 @@ import android.widget.Toast;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
 
 /**
  * Companion to AiEstimatorController — text-only Gemini call that recommends
@@ -95,10 +88,16 @@ public class CarAdvisorController {
     private View root;
     private Activity activity;
     private final Handler ui = new Handler(Looper.getMainLooper());
+    // Bumped on every attach AND detach. Async work snapshots the value at
+    // start; a mismatch at post time means the view tree it captured is a
+    // detached zombie (detach→re-attach recycles the layout), so the UI
+    // update must be dropped rather than rendered into invisible views.
+    private int attachGeneration;
 
     public void attach(View view, Activity act) {
         this.root = view;
         this.activity = act;
+        attachGeneration++;
 
         Spinner spBody = view.findViewById(R.id.spBodyType);
         Spinner spUse = view.findViewById(R.id.spUseCase);
@@ -150,6 +149,7 @@ public class CarAdvisorController {
 
     public void detach() {
         ui.removeCallbacksAndMessages(null);
+        attachGeneration++;
         root = null;
         activity = null;
     }
@@ -168,6 +168,7 @@ public class CarAdvisorController {
         cars.removeAllViews();
         btn.setEnabled(false);
 
+        final int gen = attachGeneration;
         new Thread(() -> {
             String result;
             boolean ok;
@@ -185,7 +186,10 @@ public class CarAdvisorController {
             final String finalResult = result;
             final boolean finalOk = ok;
             ui.post(() -> {
-                if (root == null) return;
+                // Generation check: progress/tvRaw/cars were captured from the
+                // view tree that existed when the request started — after a
+                // detach→re-attach they belong to a dead layout.
+                if (root == null || gen != attachGeneration) return;
                 progress.setVisibility(View.GONE);
                 btn.setEnabled(true);
                 if (!finalOk) {
@@ -380,9 +384,10 @@ public class CarAdvisorController {
     }
 
     /**
-     * Local text-only Gemini call. Could refactor to share with
-     * GeminiVisionProvider once we have a 3rd use case, but for now a tiny
-     * inline duplicate is cheaper than the abstraction.
+     * Local text-only Gemini call. The HTTP transport (header auth, capped
+     * error bodies, one-shot retry on 429/5xx/timeouts) is shared with
+     * GeminiVisionProvider so key handling can't drift; only the request
+     * body and response parsing live here.
      */
     private String callGemini(String apiKey, String prompt) throws Exception {
         if (apiKey == null || apiKey.isEmpty()) {
@@ -408,53 +413,23 @@ public class CarAdvisorController {
         gc.put("responseMimeType", "application/json");
         body.put("generationConfig", gc);
 
-        URL url = new URL("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + apiKey);
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        try {
-            conn.setRequestMethod("POST");
-            conn.setConnectTimeout(15000);
-            conn.setReadTimeout(60000);
-            conn.setRequestProperty("Content-Type", "application/json; charset=utf-8");
-            conn.setDoOutput(true);
-            try (OutputStream os = conn.getOutputStream()) {
-                os.write(body.toString().getBytes(StandardCharsets.UTF_8));
-            }
-            int code = conn.getResponseCode();
-            InputStream is = (code >= 200 && code < 300)
-                    ? conn.getInputStream() : conn.getErrorStream();
-            String raw = readAll(is);
-            if (code < 200 || code >= 300) {
-                throw new IOException("Gemini HTTP " + code + ": " + raw);
-            }
-            JSONObject resp = new JSONObject(raw);
-            JSONArray candidates = resp.optJSONArray("candidates");
-            if (candidates == null || candidates.length() == 0) {
-                throw new IOException("No candidates");
-            }
-            JSONObject first = candidates.getJSONObject(0);
-            JSONObject c = first.optJSONObject("content");
-            if (c == null) throw new IOException("Empty content");
-            JSONArray cParts = c.optJSONArray("parts");
-            if (cParts == null || cParts.length() == 0) {
-                throw new IOException("Empty parts");
-            }
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < cParts.length(); i++) {
-                sb.append(cParts.getJSONObject(i).optString("text", ""));
-            }
-            return sb.toString().trim();
-        } finally {
-            conn.disconnect();
+        String raw = GeminiVisionProvider.postJson(apiKey, body);
+        JSONObject resp = new JSONObject(raw);
+        JSONArray candidates = resp.optJSONArray("candidates");
+        if (candidates == null || candidates.length() == 0) {
+            throw new IOException("No candidates");
         }
-    }
-
-    private static String readAll(InputStream is) throws IOException {
-        if (is == null) return "";
+        JSONObject first = candidates.getJSONObject(0);
+        JSONObject c = first.optJSONObject("content");
+        if (c == null) throw new IOException("Empty content");
+        JSONArray cParts = c.optJSONArray("parts");
+        if (cParts == null || cParts.length() == 0) {
+            throw new IOException("Empty parts");
+        }
         StringBuilder sb = new StringBuilder();
-        try (BufferedReader r = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
-            String line;
-            while ((line = r.readLine()) != null) sb.append(line).append('\n');
+        for (int i = 0; i < cParts.length(); i++) {
+            sb.append(cParts.getJSONObject(i).optString("text", ""));
         }
-        return sb.toString();
+        return sb.toString().trim();
     }
 }

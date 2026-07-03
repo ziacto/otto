@@ -447,20 +447,11 @@ public class ConnectFlowController {
     }
 
     private ObdConnection.ConnectionHealth currentHealth() {
-        // ObdManagerFast doesn't expose health directly; probe via a tiny
-        // getter added to ObdConnection. We infer from isConnected + null
-        // connection is impossible here. Default to HEALTHY when connected —
-        // the probe log inside ObdConnection.initElm327 already sets the
-        // internal flag.
-        try {
-            java.lang.reflect.Field f = obdManager.getClass().getDeclaredField("connection");
-            f.setAccessible(true);
-            Object c = f.get(obdManager);
-            if (c instanceof ObdConnection) {
-                return ((ObdConnection) c).getHealth();
-            }
-        } catch (Exception ignored) {}
-        return ObdConnection.ConnectionHealth.UNKNOWN;
+        // Real getter instead of the old getDeclaredField("connection")
+        // reflection: R8 renames private fields in release builds, so the
+        // reflective lookup always failed there and health read UNKNOWN —
+        // every release-build connect showed "the car isn't answering".
+        return obdManager.getConnectionHealth();
     }
 
     private void retryConnect() {
@@ -473,14 +464,15 @@ public class ConnectFlowController {
     }
 
     private void cancel() {
+        // Thread.interrupt() cannot unblock an in-flight RFCOMM connect(), so
+        // stopWorker() alone let the connection quietly complete in the
+        // background after Cancel. cancelConnect() closes the half-open
+        // transport, which makes the blocked handshake unwind with IOException.
+        obdManager.cancelConnect();
         stopWorker();
         unregisterBtReceiver();
-        if (onDone != null) {
-            // Not connected but flow closed — pass control back so MainActivity
-            // can restore whatever screen it wants. Reuse onDone with a
-            // cancel-guard? Simpler: fire regardless; MainActivity re-checks
-            // obdManager.isConnected() and picks the right screen.
-        }
+        // Fire onDone regardless of connection state — MainActivity re-checks
+        // obdManager.isConnected() and picks the right screen.
         finishOk();
     }
 

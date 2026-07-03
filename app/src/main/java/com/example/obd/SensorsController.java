@@ -74,7 +74,13 @@ public class SensorsController {
                 return false;
             }
         });
-        stage.setOnTouchListener((v, ev) -> gd.onTouchEvent(ev));
+        // Must return true: SimpleOnGestureListener.onDown() returns false and the
+        // stage FrameLayout is not clickable, so forwarding the detector's return
+        // value would drop ACTION_DOWN — MOVE/UP never arrive and onFling can't fire.
+        stage.setOnTouchListener((v, ev) -> {
+            gd.onTouchEvent(ev);
+            return true;
+        });
 
         showView(0);
     }

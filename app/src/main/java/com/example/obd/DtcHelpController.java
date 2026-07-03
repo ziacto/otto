@@ -130,16 +130,26 @@ public final class DtcHelpController {
     }
 
     private static void showAiChooser(Context ctx, DtcHelp.Help help, Map<String, Double> live) {
-        // Try to pick up the latest VIN/model. Lazy lookup so we don't block opening the sheet.
-        String vinOrModel = "730li (E65)";
-        try {
-            com.example.obd.db.AppDatabase db = com.example.obd.db.AppDatabase.get(ctx);
-            java.util.List<com.example.obd.db.VinProfile> vins = db.vins().all();
-            if (!vins.isEmpty() && vins.get(0).vin != null) {
-                vinOrModel = vins.get(0).vin + " (730li E65 assumed)";
-            }
-        } catch (Exception ignored) { /* fall back to default */ }
+        // VIN lookup must run off the main thread: Room throws
+        // IllegalStateException for main-thread queries, and the old inline
+        // call swallowed it — the VIN enrichment silently never worked.
+        WorkDispatcher.io(() -> {
+            String vinOrModel = "730li (E65)";
+            try {
+                com.example.obd.db.AppDatabase db = com.example.obd.db.AppDatabase.get(ctx);
+                java.util.List<com.example.obd.db.VinProfile> vins = db.vins().all();
+                if (!vins.isEmpty() && vins.get(0).vin != null) {
+                    vinOrModel = vins.get(0).vin + " (730li E65 assumed)";
+                }
+            } catch (Exception ignored) { /* fall back to default */ }
+            final String resolved = vinOrModel;
+            new android.os.Handler(android.os.Looper.getMainLooper()).post(
+                    () -> showAiChooserWithVin(ctx, help, live, resolved));
+        });
+    }
 
+    private static void showAiChooserWithVin(Context ctx, DtcHelp.Help help,
+                                             Map<String, Double> live, String vinOrModel) {
         final String prompt = DtcHelp.aiPrompt(help, vinOrModel,
                 live == null ? new HashMap<>() : live);
 

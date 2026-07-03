@@ -12,6 +12,8 @@ import android.graphics.Shader;
 import android.util.AttributeSet;
 import android.view.View;
 
+import java.util.Locale;
+
 /**
  * BMW-style semi-circular gauge. Sweep from 7-o'clock (-150°) through bottom-up
  * to 5-o'clock (+150°), 300° total. Min on the left, max on the right.
@@ -58,6 +60,18 @@ public class CircularGaugeView extends View {
     private final RectF arcRect = new RectF();
     private long startupAtMs = 0L;
     private static final int STARTUP_DURATION_MS = 900;
+
+    // Latched by the first non-zero sample. Without the latch the "snap first value"
+    // heuristic re-fires every time the value passes through exactly 0 (throttle lift),
+    // producing a visible jump instead of an animated return.
+    private boolean firstValueSnapped = false;
+
+    // onDraw runs at 60 fps on 8 gauges at once — allocating a Shader/MaskFilter per
+    // frame there churns the GC. These are rebuilt only when the gauge is resized or
+    // the value colour moves to a new 4-bit bucket.
+    private float cachedBgCx = Float.NaN, cachedBgCy = Float.NaN, cachedBgRadius = Float.NaN;
+    private int cachedBgColorBucket = 1;   // impossible bucket (low nibbles set) forces first build
+    private float cachedBlurStroke = Float.NaN;
 
     public CircularGaugeView(Context ctx) { super(ctx); init(); }
     public CircularGaugeView(Context ctx, AttributeSet a) { super(ctx, a); init(); }
@@ -129,8 +143,10 @@ public class CircularGaugeView extends View {
 
     public void setValue(float v) {
         this.targetValue = clamp(v, minValue, maxValue);
-        if (Float.compare(displayValue, 0f) == 0 && Float.compare(targetValue, 0f) != 0) {
-            // First non-zero value snaps in; subsequent updates animate.
+        if (!firstValueSnapped && Float.compare(targetValue, 0f) != 0) {
+            // First non-zero value snaps in; every later update animates, even after
+            // the value has returned to exactly 0.
+            firstValueSnapped = true;
             displayValue = targetValue;
         }
         invalidate();
@@ -156,6 +172,7 @@ public class CircularGaugeView extends View {
 
         int w = getWidth();
         int h = getHeight();
+        if (w <= 0 || h <= 0) return; // shader radii below must be positive
         float size = Math.min(w, h);
         float cx = w / 2f;
         float cy = h / 2f + size * 0.05f;
@@ -169,11 +186,21 @@ public class CircularGaugeView extends View {
 
         arcRect.set(cx - radius, cy - radius, cx + radius, cy + radius);
 
-        // Radial gradient backdrop — subtle glow centred on the gauge
+        // Radial gradient backdrop — subtle glow centred on the gauge.
+        // Bucketing the colour to 4 bits per channel keeps the shader stable while the
+        // value colour drifts, so it is rebuilt a handful of times per sweep, not per frame.
         int valueColor = colorForValue(displayValue);
         int glowColor = (valueColor & 0x00FFFFFF) | 0x33000000;
-        centerBgPaint.setShader(new RadialGradient(cx, cy, radius * 1.2f,
-                glowColor, 0x00000000, Shader.TileMode.CLAMP));
+        int colorBucket = glowColor & 0x00F0F0F0;
+        if (colorBucket != cachedBgColorBucket
+                || cx != cachedBgCx || cy != cachedBgCy || radius != cachedBgRadius) {
+            centerBgPaint.setShader(new RadialGradient(cx, cy, radius * 1.2f,
+                    glowColor, 0x00000000, Shader.TileMode.CLAMP));
+            cachedBgColorBucket = colorBucket;
+            cachedBgCx = cx;
+            cachedBgCy = cy;
+            cachedBgRadius = radius;
+        }
         c.drawCircle(cx, cy, radius * 1.2f, centerBgPaint);
 
         // Outer track
@@ -186,11 +213,16 @@ public class CircularGaugeView extends View {
             c.drawArc(arcRect, redStart, redSweep, false, redZonePaint);
         }
 
-        // Value arc with neon glow underneath
+        // Value arc with neon glow underneath. The blur filter only depends on the
+        // stroke width, so rebuild it on resize instead of every frame.
         valuePaint.setColor(valueColor);
         glowPaint.setColor((valueColor & 0x00FFFFFF) | 0x55000000);
-        try { glowPaint.setMaskFilter(new BlurMaskFilter(stroke * 0.6f, BlurMaskFilter.Blur.NORMAL)); }
-        catch (Exception ignored) {}
+        if (stroke != cachedBlurStroke) {
+            try {
+                glowPaint.setMaskFilter(new BlurMaskFilter(stroke * 0.6f, BlurMaskFilter.Blur.NORMAL));
+                cachedBlurStroke = stroke;
+            } catch (Exception ignored) {}
+        }
         float sweep = valueToAngle(displayValue);
         if (sweep > 0.1f) {
             c.drawArc(arcRect, START_ANGLE, sweep, false, glowPaint);
@@ -285,8 +317,9 @@ public class CircularGaugeView extends View {
             float tx = cx + (float) Math.cos(rad) * labelR;
             float ty = cy + (float) Math.sin(rad) * labelR + tickLabelPaint.getTextSize() * 0.35f;
             float labelV = minValue + frac * (maxValue - minValue);
-            String txt = (labelV >= 1000) ? String.format("%.0fk", labelV / 1000f)
-                                          : String.format("%.0f", labelV);
+            // Locale.US so digits stay Western Arabic even in Arabic-digit locales
+            String txt = (labelV >= 1000) ? String.format(Locale.US, "%.0fk", labelV / 1000f)
+                                          : String.format(Locale.US, "%.0f", labelV);
             // Redline major ticks get red labels
             if (!Float.isNaN(redlineStart) && labelV >= redlineStart) {
                 tickLabelPaint.setColor(0xFFF44336);
@@ -298,9 +331,10 @@ public class CircularGaugeView extends View {
     }
 
     private String formatNumber(float v) {
-        if (valueDecimals == 0) return String.format("%.0f", v);
-        if (valueDecimals == 1) return String.format("%.1f", v);
-        return String.format("%." + valueDecimals + "f", v);
+        // Locale.US so digits stay Western Arabic even in Arabic-digit locales
+        if (valueDecimals == 0) return String.format(Locale.US, "%.0f", v);
+        if (valueDecimals == 1) return String.format(Locale.US, "%.1f", v);
+        return String.format(Locale.US, "%." + valueDecimals + "f", v);
     }
 
     private static float clamp(float v, float lo, float hi) {

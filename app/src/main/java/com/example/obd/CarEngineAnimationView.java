@@ -12,6 +12,8 @@ import android.util.AttributeSet;
 import android.view.Choreographer;
 import android.view.View;
 
+import java.util.Locale;
+
 /**
  * Live engine-bay schematic that animates with real-time OBD readings.
  *
@@ -48,12 +50,23 @@ public class CarEngineAnimationView extends View implements Choreographer.FrameC
     private float intakePhase = 0f;
     private long lastFrameNs = 0L;
 
+    // True while a Choreographer callback is pending. This screen holds
+    // FLAG_KEEP_SCREEN_ON, so an unconditional 60 fps repost would drain the battery
+    // even when the engine is off and nothing on screen is moving — instead the tick
+    // stops once everything has converged and a setter re-arms it.
+    private boolean frameCallbackPosted = false;
+
     private final Paint paintFill = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint paintStroke = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint paintCoil = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint paintGlow = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint paintIntake = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint paintText = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+    // Cached reservoir glow — see drawReservoirGlow for why these aren't per-frame locals
+    private final Paint paintReservoirGlow = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private int cachedGlowColor = 0;
+    private float cachedGlowCx = Float.NaN, cachedGlowCy = Float.NaN, cachedGlowR = Float.NaN;
 
     // BMW N52 firing order — used to phase the 6 coil pulses
     private static final int[] FIRING_ORDER = { 0, 4, 2, 5, 1, 3 };
@@ -77,15 +90,25 @@ public class CarEngineAnimationView extends View implements Choreographer.FrameC
 
     @Override protected void onAttachedToWindow() {
         super.onAttachedToWindow();
-        Choreographer.getInstance().postFrameCallback(this);
+        scheduleFrame();
     }
 
     @Override protected void onDetachedFromWindow() {
         Choreographer.getInstance().removeFrameCallback(this);
+        frameCallbackPosted = false;
         super.onDetachedFromWindow();
     }
 
+    /** Arm the next Choreographer tick unless one is already pending. */
+    private void scheduleFrame() {
+        if (frameCallbackPosted || !isAttachedToWindow()) return;
+        frameCallbackPosted = true;
+        Choreographer.getInstance().postFrameCallback(this);
+    }
+
     @Override public void doFrame(long frameTimeNanos) {
+        frameCallbackPosted = false;
+        // dt is capped at 100 ms so waking up after an idle stop doesn't jump the phases.
         float dtSec = lastFrameNs == 0L ? 1f / 60f
                 : Math.min(0.1f, (frameTimeNanos - lastFrameNs) / 1_000_000_000f);
         lastFrameNs = frameTimeNanos;
@@ -107,8 +130,26 @@ public class CarEngineAnimationView extends View implements Choreographer.FrameC
         intakePhase += (float) (dpRaw(2) + dispMaf * 1.8f) * dtSec;
         if (intakePhase > 1000f) intakePhase -= 1000f;
 
+        // Keep ticking only while something is visibly moving: values still easing
+        // toward their targets, or rpm/MAF demanding continuous strobe/dash motion.
+        // With the engine off (rpm≈0, maf≈0) the schematic freezes and stops burning CPU.
+        boolean easing = Math.abs(dispRpm - targetRpm) > 0.5
+                || Math.abs(dispMaf - targetMaf) > 0.05
+                || (!Double.isNaN(targetCoolant) && Math.abs(dispCoolant - targetCoolant) > 0.1)
+                || (!Double.isNaN(targetOilTemp) && Math.abs(dispOil - targetOilTemp) > 0.1);
+        boolean continuousMotion = targetRpm > 1 || targetMaf > 0.1;
+        if (easing || continuousMotion) {
+            scheduleFrame();
+        } else {
+            // Snap the sub-threshold residue so the frozen frame shows exact values,
+            // and clear lastFrameNs so the next wake-up starts with a clean dt.
+            dispRpm = targetRpm;
+            dispMaf = targetMaf;
+            if (!Double.isNaN(targetCoolant)) dispCoolant = targetCoolant;
+            if (!Double.isNaN(targetOilTemp)) dispOil = targetOilTemp;
+            lastFrameNs = 0L;
+        }
         invalidate();
-        Choreographer.getInstance().postFrameCallback(this);
     }
 
     @Override protected void onDraw(Canvas canvas) {
@@ -198,13 +239,20 @@ public class CarEngineAnimationView extends View implements Choreographer.FrameC
         float cy = uy * 4.5f;
         float r = ux * 1.4f;
 
-        // Glow color map: 70°C cool blue → 100°C neutral → 110°C amber → 120°C+ red
+        // Glow color map: 70°C cool blue → 100°C neutral → 110°C amber → 120°C+ red.
+        // Paint + shader are cached: coolant moves slowly, so allocating them per
+        // frame was pure GC churn. Rebuilt only when the colour or geometry changes.
         int glowColor = coolantColor(dispCoolant);
-        RadialGradient g = new RadialGradient(cx, cy, r, glowColor, 0x00000000,
-                Shader.TileMode.CLAMP);
-        Paint glow = new Paint(Paint.ANTI_ALIAS_FLAG);
-        glow.setShader(g);
-        c.drawCircle(cx, cy, r, glow);
+        if (glowColor != cachedGlowColor || cx != cachedGlowCx || cy != cachedGlowCy
+                || r != cachedGlowR) {
+            paintReservoirGlow.setShader(new RadialGradient(cx, cy, r, glowColor,
+                    0x00000000, Shader.TileMode.CLAMP));
+            cachedGlowColor = glowColor;
+            cachedGlowCx = cx;
+            cachedGlowCy = cy;
+            cachedGlowR = r;
+        }
+        c.drawCircle(cx, cy, r, paintReservoirGlow);
 
         paintFill.setColor(0xFF1B2030);
         c.drawRoundRect(ux * 12.6f, uy * 3f, ux * 15f, uy * 6f, dp(3), dp(3), paintFill);
@@ -226,11 +274,12 @@ public class CarEngineAnimationView extends View implements Choreographer.FrameC
     private void drawLabels(Canvas c, float ux, float uy) {
         paintText.setColor(0xC0FFFFFF);
         paintText.setTextSize(dp(8.5f));
-        c.drawText(String.format("RPM %.0f", dispRpm), ux * 0.6f, uy * 2.2f, paintText);
+        // Locale.US so digits stay Western Arabic even in Arabic-digit locales
+        c.drawText(String.format(Locale.US, "RPM %.0f", dispRpm), ux * 0.6f, uy * 2.2f, paintText);
         if (!Double.isNaN(targetCoolant)) {
-            c.drawText(String.format("COOL %.0f°C", dispCoolant), ux * 6f, uy * 2.2f, paintText);
+            c.drawText(String.format(Locale.US, "COOL %.0f°C", dispCoolant), ux * 6f, uy * 2.2f, paintText);
         }
-        c.drawText(String.format("MAF %.1f g/s", dispMaf), ux * 11f, uy * 2.2f, paintText);
+        c.drawText(String.format(Locale.US, "MAF %.1f g/s", dispMaf), ux * 11f, uy * 2.2f, paintText);
     }
 
     // --- color maps ---
@@ -266,10 +315,12 @@ public class CarEngineAnimationView extends View implements Choreographer.FrameC
 
     // --- public setters (called from the UI thread by DashboardController) ---
 
-    public void setRpm(double v)         { targetRpm = v; }
-    public void setCoolantTemp(double v) { targetCoolant = v; }
-    public void setMaf(double v)         { targetMaf = v; }
-    public void setOilTemp(double v)     { targetOilTemp = v; }
+    // Each setter re-arms the frame tick: it may have stopped once the previous
+    // targets converged, and a new target means there is motion to render again.
+    public void setRpm(double v)         { targetRpm = v; scheduleFrame(); }
+    public void setCoolantTemp(double v) { targetCoolant = v; scheduleFrame(); }
+    public void setMaf(double v)         { targetMaf = v; scheduleFrame(); }
+    public void setOilTemp(double v)     { targetOilTemp = v; scheduleFrame(); }
 
     // --- helpers ---
 

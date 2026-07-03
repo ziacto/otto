@@ -5,7 +5,11 @@ import android.content.Context;
 import com.example.obd.db.AppDatabase;
 import com.example.obd.db.PidSample;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -29,30 +33,96 @@ public final class TrendEngine {
     public static final double SIGMA_THRESHOLD = 2.0;
     private static final long DAY = TimeUnit.DAYS.toMillis(1);
 
+    // Samples arrive at ~20/sec while driving — a raw Thread per single-row insert
+    // was ~20 thread spawns/sec. Instead samples buffer in memory and one shared
+    // writer thread flushes them in a single transaction every FLUSH_INTERVAL_MS
+    // or as soon as FLUSH_THRESHOLD pile up, whichever comes first.
+    private static final int FLUSH_THRESHOLD = 64;
+    private static final long FLUSH_INTERVAL_MS = 3_000;
+
+    private static final ScheduledExecutorService WRITER =
+            Executors.newSingleThreadScheduledExecutor(r -> {
+                Thread t = new Thread(r, "PidSampleWriter");
+                t.setDaemon(true);
+                return t;
+            });
+
+    /** Buffered samples awaiting flush; guarded by its own monitor. */
+    private static final List<PidSample> PENDING = new ArrayList<>();
+    private static volatile Context appContext;
+    private static volatile boolean flusherStarted = false;
+
     private TrendEngine() {}
 
-    /** Wipe every persisted sample. Returns the count that was removed. */
+    /** Wipe every persisted sample. Returns the count that was removed. Blocking — call off the UI thread. */
     public static int clearAll(Context ctx) {
-        AppDatabase db = AppDatabase.get(ctx);
-        int before = db.samples().total();
-        db.samples().deleteAll();
-        return before;
+        Context app = ctx.getApplicationContext();
+        // Run on the writer so the wipe serializes after any in-flight flush,
+        // and buffered samples can't be re-inserted after the delete.
+        Future<Integer> f = WRITER.submit(() -> {
+            synchronized (PENDING) {
+                PENDING.clear();
+            }
+            AppDatabase db = AppDatabase.get(app);
+            int before = db.samples().total();
+            db.samples().deleteAll();
+            return before;
+        });
+        try {
+            return f.get();
+        } catch (Exception e) {
+            return 0;
+        }
     }
 
     /** Append a sample. Cheap; non-blocking off the caller. */
     public static void record(Context ctx, String name, double value) {
         if (name == null || Double.isNaN(value) || Double.isInfinite(value)) return;
-        AppDatabase db = AppDatabase.get(ctx);
-        new Thread(() -> {
-            try {
-                PidSample s = new PidSample();
-                s.vin = "default";
-                s.name = name;
-                s.value = value;
-                s.ts = System.currentTimeMillis();
-                db.samples().insert(s);
-            } catch (Exception ignored) { /* DB write failures non-fatal */ }
-        }, "PidSampleWriter").start();
+        if (appContext == null) appContext = ctx.getApplicationContext();
+
+        PidSample s = new PidSample();
+        s.vin = "default";
+        s.name = name;
+        s.value = value;
+        s.ts = System.currentTimeMillis();
+
+        boolean flushNow;
+        synchronized (PENDING) {
+            PENDING.add(s);
+            flushNow = PENDING.size() >= FLUSH_THRESHOLD;
+        }
+        if (flushNow) {
+            WRITER.execute(TrendEngine::flushPending);
+        } else if (!flusherStarted) {
+            startPeriodicFlush();
+        }
+    }
+
+    /** Arm the recurring flush exactly once, on first sample. */
+    private static synchronized void startPeriodicFlush() {
+        if (flusherStarted) return;
+        flusherStarted = true;
+        WRITER.scheduleWithFixedDelay(TrendEngine::flushPending,
+                FLUSH_INTERVAL_MS, FLUSH_INTERVAL_MS, TimeUnit.MILLISECONDS);
+    }
+
+    /** Runs on the writer thread only: drain the buffer into one Room transaction. */
+    private static void flushPending() {
+        Context app = appContext;
+        if (app == null) return;
+        List<PidSample> batch;
+        synchronized (PENDING) {
+            if (PENDING.isEmpty()) return;
+            batch = new ArrayList<>(PENDING);
+            PENDING.clear();
+        }
+        try {
+            AppDatabase db = AppDatabase.get(app);
+            // One transaction per batch — single fsync instead of one per row.
+            db.runInTransaction(() -> {
+                for (PidSample s : batch) db.samples().insert(s);
+            });
+        } catch (Exception ignored) { /* DB write failures non-fatal */ }
     }
 
     /** Battery-health verdict. Null if not enough data. */

@@ -10,7 +10,7 @@ public class O2SensorCommand extends ObdCommand {
     @Override
     public double parseResult(String rawResponse) {
         String[] parts = rawResponse.split(" ");
-        if (parts.length < 4) return 0;
+        if (parts.length < 4) throw new IllegalStateException("Truncated response [" + getName() + "]: " + rawResponse);
         int A = Integer.parseInt(parts[2], 16);
         return A / 200.0; // O2 voltage
     }

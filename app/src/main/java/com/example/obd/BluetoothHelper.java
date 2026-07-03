@@ -37,6 +37,17 @@ public class BluetoothHelper {
         return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
     }
 
+    /**
+     * Toast from any thread without casting context to Activity — the blind
+     * (Activity) cast turned a successful connect into a swallowed
+     * ClassCastException (logged as "connect failed") when the helper was
+     * constructed with a non-Activity context.
+     */
+    private void postToast(String msg, int length) {
+        new android.os.Handler(android.os.Looper.getMainLooper()).post(() ->
+                Toast.makeText(context.getApplicationContext(), msg, length).show());
+    }
+
     private void rememberDevice(BluetoothDevice device) {
         if (device != null) {
             prefs().edit().putString(KEY_LAST_MAC, device.getAddress()).apply();
@@ -72,8 +83,7 @@ public class BluetoothHelper {
             try {
                 obdManager.connect(target);
                 ObdLogger.get().log(ObdLogger.Level.INFO, "Auto-connect OK");
-                ((android.app.Activity) context).runOnUiThread(() ->
-                        Toast.makeText(context, "Auto-connected", Toast.LENGTH_SHORT).show());
+                postToast("Auto-connected", Toast.LENGTH_SHORT);
             } catch (Exception e) {
                 ObdLogger.get().log(ObdLogger.Level.ERROR, "Auto-connect failed: " + e.getMessage());
             }
@@ -211,26 +221,22 @@ public class BluetoothHelper {
                     BluetoothDevice device = list.get(which);
                     new Thread(() -> {
                         try {
-                            ((android.app.Activity) context).runOnUiThread(() ->
-                                    Toast.makeText(context, "Connecting...", Toast.LENGTH_SHORT).show());
+                            postToast("Connecting...", Toast.LENGTH_SHORT);
                             ObdLogger.get().log(ObdLogger.Level.INFO, "Connecting to " + device.getAddress());
                             obdManager.connect(device);
                             rememberDevice(device);
                             ObdLogger.get().log(ObdLogger.Level.INFO, "Connected to " + device.getAddress());
-                            ((android.app.Activity) context).runOnUiThread(() ->
-                                    Toast.makeText(context, "Connected", Toast.LENGTH_SHORT).show());
+                            postToast("Connected", Toast.LENGTH_SHORT);
                         } catch (SecurityException se) {
                             ObdLogger.get().log(ObdLogger.Level.ERROR,
                                     "BT permission missing: " + se);
-                            ((android.app.Activity) context).runOnUiThread(() ->
-                                    Toast.makeText(context, "Bluetooth permission is missing", Toast.LENGTH_LONG).show());
+                            postToast("Bluetooth permission is missing", Toast.LENGTH_LONG);
                         } catch (IOException e) {
                             ObdLogger.get().log(ObdLogger.Level.ERROR,
                                     "Connect failed to " + device.getAddress() + ": " + e);
-                            ((android.app.Activity) context).runOnUiThread(() ->
-                                    Toast.makeText(context, "Connection failed: " + e.getMessage(), Toast.LENGTH_LONG).show());
+                            postToast("Connection failed: " + e.getMessage(), Toast.LENGTH_LONG);
                         }
-                    }).start();
+                    }, "ObdManualConnect").start();
                 })
                 .setNegativeButton("Cancel", null)
                 .show();

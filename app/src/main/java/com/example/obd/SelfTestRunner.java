@@ -4,6 +4,7 @@ import android.content.Context;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -52,19 +53,25 @@ public final class SelfTestRunner {
      * connect flow).
      */
     public static Report run(Context ctx) {
-        Map<String, Integer> counts = new LinkedHashMap<>();
-        Map<String, Double> lastValue = new LinkedHashMap<>();
-        Map<String, Boolean> inRange = new LinkedHashMap<>();
+        // ConcurrentHashMap: the poll thread writes these while this (caller)
+        // thread reads them after the latch — plain HashMaps had no visibility
+        // guarantee. Report ordering comes from iterating RANGES, so losing
+        // insertion order here doesn't matter.
+        Map<String, Integer> counts = new ConcurrentHashMap<>();
+        Map<String, Double> lastValue = new ConcurrentHashMap<>();
+        Map<String, Boolean> inRange = new ConcurrentHashMap<>();
         for (String n : RANGES.keySet()) { counts.put(n, 0); inRange.put(n, false); }
 
+        // Trips as soon as every PID has produced an in-range sample, so a healthy
+        // stack finishes early instead of always sitting out the full window.
         CountDownLatch endLatch = new CountDownLatch(1);
         SpeedPollerListener listener = new SpeedPollerListener() {
             @Override public void onValue(String name, double value, String unit) {
-                Integer prev = counts.get(name);
-                if (prev != null) counts.put(name, prev + 1);
+                if (counts.containsKey(name)) counts.merge(name, 1, Integer::sum);
                 lastValue.put(name, value);
                 double[] r = RANGES.get(name);
                 if (r != null && value >= r[0] && value <= r[1]) inRange.put(name, true);
+                if (!inRange.containsValue(false)) endLatch.countDown();
             }
             @Override public void onError(String msg) { /* recorded via log */ }
         };
@@ -87,10 +94,13 @@ public final class SelfTestRunner {
             return new Report(false, "FAILED — could not open simulator: " + e.getMessage());
         }
 
-        // Let the poll loop churn for RUN_MS then tear everything down.
+        // Let the poll loop churn until every PID passed (latch) or RUN_MS elapses,
+        // then tear everything down.
+        long startedAt = System.currentTimeMillis();
         try {
             endLatch.await(RUN_MS, TimeUnit.MILLISECONDS);
         } catch (InterruptedException ignored) {}
+        long elapsedS = Math.max(1, (System.currentTimeMillis() - startedAt) / 1000);
         mgr.disconnect();
 
         // Build report.
@@ -111,7 +121,7 @@ public final class SelfTestRunner {
             }
             sb.append('\n');
         }
-        String summary = String.format("%d / %d PIDs passed in %ds\n\n", passed, total, RUN_MS / 1000);
+        String summary = String.format("%d / %d PIDs passed in %ds\n\n", passed, total, elapsedS);
         ObdLogger.get().log(ObdLogger.Level.INFO,
                 "Self-test done: " + passed + "/" + total);
         return new Report(passed == total, summary + sb);

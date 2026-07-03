@@ -1,11 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-    <uses-permission android:name="android.permission.BLUETOOTH"/>
-    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"/>
-    <!-- Android 12+ runtime-permissions -->
+    <!-- Legacy BT permissions are only meaningful up to Android 11 (API 30);
+         capping them keeps Play's permission listing honest on 12+. -->
+    <uses-permission android:name="android.permission.BLUETOOTH"
+        android:maxSdkVersion="30"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"
+        android:maxSdkVersion="30"/>
+    <!-- Android 12+ runtime-permissions. Scans only find the ELM327 adapter —
+         GPS for the DTC diary comes from the location permissions below, never
+         from BT scan results, so we can assert neverForLocation. -->
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
-    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation"
+        tools:targetApi="s"/>
     <!-- For older devices: Location permission may be required for Bluetooth scanning -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
@@ -39,9 +47,16 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.OBD">
+        <!-- Portrait-only by decision (2026-07-02): landscape layouts were never
+             designed, and with the hand-rolled single-activity navigation a
+             rotation destroyed MainActivity mid-session and dropped the live
+             OBD connection. singleTop lets `adb shell am start - -es action …`
+             debug hooks reach a warm activity via onNewIntent. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTop"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.Otto.Splash">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -54,12 +69,14 @@
             android:name=".PdfViewerActivity"
             android:exported="false"
             android:label="Manual"
+            android:screenOrientation="portrait"
             android:parentActivityName=".MainActivity" />
 
         <activity
             android:name=".ImageViewerActivity"
             android:exported="false"
             android:label="Diagram"
+            android:screenOrientation="portrait"
             android:parentActivityName=".MainActivity" />
 
         <service

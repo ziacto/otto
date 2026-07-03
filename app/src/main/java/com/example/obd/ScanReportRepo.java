@@ -11,6 +11,8 @@ import org.json.JSONObject;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Persists every scan as a stand-alone HTML report viewable from the
@@ -24,13 +26,23 @@ public final class ScanReportRepo {
 
     private ScanReportRepo() {}
 
+    // One shared writer thread instead of a raw Thread per save — DB writes
+    // serialize in submission order and back-to-back scans can't pile up threads.
+    // (WorkDispatcher is a cached pool, so it wouldn't give us that ordering.)
+    private static final ExecutorService SAVE_EXECUTOR =
+            Executors.newSingleThreadExecutor(r -> {
+                Thread t = new Thread(r, "ScanReportSave");
+                t.setDaemon(true);
+                return t;
+            });
+
     private static final SimpleDateFormat WHEN_FMT =
             new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US);
 
     public static void saveDtcScan(Context ctx, String kind, String title,
                                    String vin, String scanText) {
         Context app = ctx.getApplicationContext();
-        new Thread(() -> {
+        SAVE_EXECUTOR.execute(() -> {
             try {
                 String html = ShareReport.buildHtml(app, scanText);
                 ScanReport r = new ScanReport();
@@ -44,12 +56,12 @@ public final class ScanReportRepo {
                 ObdLogger.get().log(ObdLogger.Level.ERROR,
                         "ScanReport save failed: " + e.getMessage());
             }
-        }, "ScanReportSave").start();
+        });
     }
 
     public static void saveAiEstimate(Context ctx, String vin, JSONObject json) {
         Context app = ctx.getApplicationContext();
-        new Thread(() -> {
+        SAVE_EXECUTOR.execute(() -> {
             try {
                 String title = "AI Estimate — "
                         + json.optString("identified_part", "unknown part");
@@ -65,7 +77,7 @@ public final class ScanReportRepo {
                 ObdLogger.get().log(ObdLogger.Level.ERROR,
                         "ScanReport AI save failed: " + e.getMessage());
             }
-        }, "ScanReportSaveAi").start();
+        });
     }
 
     private static String buildAiHtml(JSONObject j, String vin) {

@@ -25,7 +25,11 @@ Language: Java only, no Kotlin, no Compose.
   already pass. Handles: BT off, permission missing, no paired adapter, paired
   but out of range, adapter linked but ECU silent (ignition off).
 - **BMW module scans** — DME, DSC, EGS via UDS `19 02 FF` on `0x6F1`, with
-  Mode 22 DIDs for the numbers cluster stores but Mode 01 hides.
+  Mode 22 DIDs for the numbers cluster stores but Mode 01 hides. The
+  fuel-level probe walks its candidate DME DIDs in a **single paused,
+  D-CAN-routed session** (`ObdManagerFast.readUdsRawBatch`) instead of one
+  routing flip per DID, so a probe no longer thrashes the poll loop or leaves
+  the dashboard on `NO DATA` while functional addressing settles back.
 - **AI Repair Estimator** — snap a photo of a broken part, get a full Dubai-
   priced (AED) repair handout: OEM part numbers, DIY steps, safety warnings,
   workshop query. Powered by Gemini 2.5 Flash Vision.
@@ -143,6 +147,11 @@ If the adapter gets stuck ("read failed, socket might closed or timeout"),
 drawer → **Reset Bluetooth Pairing**. That unbonds the adapter, forgets the
 saved MAC, and drops you into system BT settings to pair fresh.
 
+Auto-connect (on launch) and the guided connect flow can both fire at once.
+`ObdManagerFast.connect()` no-ops a duplicate connect to a device it's already
+linked to — so the freshly-opened socket isn't torn down and re-initialised a
+second time (no double ELM327 handshake / double poll loop in the diag log).
+
 ---
 
 ## Poll groups
@@ -152,6 +161,14 @@ group is a list of `ObdCommand` instances with an interval in ms. Screens
 that swap dashboards call `ObdManagerFast.swapPollGroup()` which interrupts
 the poll sleep so the new group takes effect on the next cycle (no thread
 join, no visible pause).
+
+That interrupt can land mid-command. The poll loop recognises its own swap
+signal (an `Interrupted` on the in-flight read while `running` is still true),
+drops the half-finished cycle **without** flagging those PIDs as failures and
+**without** counting it toward the three-empty-cycle disconnect, then re-polls
+the new group immediately. A screen switch therefore no longer spams
+`Poll FAIL … Interrupted` in the log or risks a spurious "adapter not
+responding" teardown.
 
 | Group                | Interval | Commands |
 |----------------------|----------|----------|

@@ -63,7 +63,7 @@ public final class SensorInfo {
      * Single source of truth for sensor metadata. Insertion order = display order
      * within each category. Adding a sensor here makes it appear in the Live Data
      * browser automatically — wire up the matching ObdCommand in
-     * {@link MainActivity.PollGroup} to feed it.
+     * {@link PollGroup} to feed it.
      */
     private static final Map<String, Spec> REGISTRY = new LinkedHashMap<>();
 

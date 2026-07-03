@@ -11,13 +11,16 @@ public class BatteryVoltageCommand extends ObdCommand {
 
     @Override
     public double parseResult(String rawResponse) {
-        // clean response
+        // clean response — never fabricate 0 V from garbage; a fake dead-battery
+        // reading would flow into trends/dashboards as real data.
         String clean = rawResponse.replaceAll("[^0-9.]", "").trim();
-        if (clean.isEmpty()) return 0;
+        if (clean.isEmpty()) {
+            throw new IllegalStateException("Truncated response [" + getName() + "]: " + rawResponse);
+        }
         try {
             return Double.parseDouble(clean);
         } catch (NumberFormatException e) {
-            return 0;
+            throw new IllegalStateException("Malformed response [" + getName() + "]: " + rawResponse);
         }
     }
 }

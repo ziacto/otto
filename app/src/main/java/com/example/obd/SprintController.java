@@ -76,6 +76,10 @@ public class SprintController {
     public void onSpeedValue(double speedKmh) {
         if (!attached) return;
         handler.post(() -> {
+            // Re-check inside the post: a detach can land between the check
+            // above and this runnable, and the state machine must not advance
+            // against a torn-down screen.
+            if (!attached) return;
             if (tvSpeed != null)
                 tvSpeed.setText(String.format(Locale.US, "%.0f km/h", speedKmh));
 
@@ -131,25 +135,25 @@ public class SprintController {
             case IDLE:
                 tvStatus.setText("0 – 100 km/h Timer");
                 tvTime.setText("---.-- s");
-                btnControl.setText("BEREIT MACHEN");
+                btnControl.setText("GET READY");
                 tintButton("#03DAC5");
                 break;
             case READY:
-                tvStatus.setText("Warte auf Anfahrt…");
+                tvStatus.setText("Waiting for launch…");
                 tvTime.setText("---.-- s");
-                btnControl.setText("ABBRECHEN");
+                btnControl.setText("CANCEL");
                 tintButton("#FF6D00");
                 break;
             case RUNNING:
                 tvStatus.setText("Lauf aktiv!");
-                btnControl.setText("ABBRECHEN");
+                btnControl.setText("CANCEL");
                 tintButton("#F44336");
                 break;
             case DONE:
                 double t = (endTime - startTime) / 1000.0;
                 tvTime.setText(String.format(Locale.US, "%.2f s", t));
-                tvStatus.setText("Fertig!");
-                btnControl.setText("NOCHMAL");
+                tvStatus.setText("Done!");
+                btnControl.setText("AGAIN");
                 tintButton("#03DAC5");
                 break;
         }
@@ -192,7 +196,7 @@ public class SprintController {
         chart.getAxisLeft().setAxisMinimum(0f);
         chart.getAxisLeft().setAxisMaximum(120f);
         chart.getAxisRight().setEnabled(false);
-        chart.setNoDataText("Noch kein Lauf");
+        chart.setNoDataText("No run yet");
         chart.setNoDataTextColor(Color.GRAY);
     }
 
@@ -202,7 +206,7 @@ public class SprintController {
         for (float[] pt : currentRun)
             entries.add(new Entry(pt[0] / 1000f, pt[1]));
 
-        LineDataSet ds = new LineDataSet(entries, "Geschwindigkeit (km/h)");
+        LineDataSet ds = new LineDataSet(entries, "Speed (km/h)");
         ds.setColor(Color.parseColor("#03DAC5"));
         ds.setDrawCircles(false);
         ds.setLineWidth(2.5f);
