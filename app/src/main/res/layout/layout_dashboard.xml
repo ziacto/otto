@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#0E0E1A"
@@ -232,12 +233,16 @@
 
                 <TextView
                     android:id="@+id/tvRpmValue"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="—"
                     android:textColor="@color/textPrimary"
-                    android:textSize="72sp"
                     android:textStyle="bold"
+                    android:maxLines="1"
+                    app:autoSizeTextType="uniform"
+                    app:autoSizeMinTextSize="34sp"
+                    app:autoSizeMaxTextSize="72sp"
+                    app:autoSizeStepGranularity="2sp"
                     android:fontFeatureSettings="tnum"
                     android:paddingTop="6dp"
                     android:includeFontPadding="false" />
@@ -274,12 +279,16 @@
 
                 <TextView
                     android:id="@+id/tvSpeedValue"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="—"
                     android:textColor="@color/textPrimary"
-                    android:textSize="72sp"
                     android:textStyle="bold"
+                    android:maxLines="1"
+                    app:autoSizeTextType="uniform"
+                    app:autoSizeMinTextSize="34sp"
+                    app:autoSizeMaxTextSize="72sp"
+                    app:autoSizeStepGranularity="2sp"
                     android:fontFeatureSettings="tnum"
                     android:paddingTop="6dp"
                     android:includeFontPadding="false" />

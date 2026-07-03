@@ -14,6 +14,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * Live Data browser: every known sensor in one scrollable list with current
@@ -36,12 +37,19 @@ public final class LiveDataBrowserController {
     private final Map<String, Boolean> expanded = new HashMap<>();
     private final Map<String, Double> lastValues = new LinkedHashMap<>();
 
+    // Set by attach(). Tapping a category chip narrows the visible rows AND asks
+    // the host (MainActivity) to swap the OBD poll group so only that system's
+    // PIDs are polled. Null-safe: if no switcher is wired, chips still filter.
+    private Consumer<PollGroup> pollGroupSwitcher;
+
     /** Attach to an inflated layout_livedata.xml. */
-    public void attach(View view, SensorInfo.Category initialFilter) {
+    public void attach(View view, SensorInfo.Category initialFilter,
+                       Consumer<PollGroup> switcher) {
         this.root = view;
         this.container = view.findViewById(R.id.liveRowContainer);
         this.chipsRow = view.findViewById(R.id.liveCategoryChips);
         this.currentFilter = initialFilter;
+        this.pollGroupSwitcher = switcher;
 
         buildChips();
         rebuildRows();
@@ -51,6 +59,7 @@ public final class LiveDataBrowserController {
         root = null;
         container = null;
         chipsRow = null;
+        pollGroupSwitcher = null;
         rowByName.clear();
         // Keep lastValues + expanded across detach/attach so re-opening the
         // screen restores the prior view state.
@@ -78,9 +87,11 @@ public final class LiveDataBrowserController {
         Context ctx = chipsRow.getContext();
         TextView chip = new TextView(ctx);
         chip.setText(label);
-        chip.setTextSize(11f);
+        // Match the Drive / Diagnose chip sizing (12sp, 14dp horizontal padding)
+        // so all three chip surfaces read as one component.
+        chip.setTextSize(12f);
         chip.setTypeface(null, android.graphics.Typeface.BOLD);
-        chip.setPadding(dp(ctx, 12), dp(ctx, 6), dp(ctx, 12), dp(ctx, 6));
+        chip.setPadding(dp(ctx, 14), dp(ctx, 6), dp(ctx, 14), dp(ctx, 6));
         boolean active = (cat == currentFilter);
         chip.setBackgroundResource(active
                 ? R.drawable.status_pill_ok
@@ -92,10 +103,33 @@ public final class LiveDataBrowserController {
         chip.setLayoutParams(lp);
         chip.setOnClickListener(v -> {
             currentFilter = cat;
+            // Swap the poll group to match the chosen category so the adapter
+            // only spends cycles on that system's PIDs (or the broad dashboard
+            // group for "All"). Filtering rows alone would keep polling every
+            // sensor, so the narrow-category rows would update just as slowly.
+            if (pollGroupSwitcher != null) pollGroupSwitcher.accept(pollGroupFor(cat));
             buildChips();
             rebuildRows();
         });
         chipsRow.addView(chip);
+    }
+
+    /**
+     * Map a Live Data category to the poll group that covers its PIDs. The "All"
+     * chip (cat == null) falls back to the broad dashboard group, which polls
+     * the sensors most owners care about across every system.
+     */
+    private static PollGroup pollGroupFor(SensorInfo.Category cat) {
+        if (cat == null) return PollGroup.GROUP_DASHBOARD;
+        switch (cat) {
+            case POWERTRAIN:  return PollGroup.GROUP_LIVE_POWERTRAIN;
+            case THERMAL:     return PollGroup.GROUP_LIVE_THERMAL;
+            case FUEL:        return PollGroup.GROUP_LIVE_FUEL;
+            case ELECTRICAL:  return PollGroup.GROUP_LIVE_ELECTRICAL;
+            case PERFORMANCE: return PollGroup.GROUP_LIVE_PERFORMANCE;
+            case EMISSIONS:   return PollGroup.GROUP_LIVE_EMISSIONS;
+            default:          return PollGroup.GROUP_DASHBOARD;
+        }
     }
 
     // --- rows ---

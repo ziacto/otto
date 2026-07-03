@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     Drawer menu. Primary destinations live on the bottom nav (Drive / Diagnose /
-    Garage). The drawer holds Live Data browsing (filtered by car system) plus
-    less-frequent screens. Live Data items all route to the SAME screen with a
-    different category filter preset — same data, scannable layout.
+    Garage). The drawer holds Live Data browsing plus less-frequent screens.
+    Live Data is a single entry — the car-system category (Powertrain, Thermal,
+    Fuel & Air, …) is chosen in-screen via the chips at the top, which also swap
+    the OBD poll group so only that system's PIDs are polled.
 -->
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
@@ -13,22 +14,17 @@
             android:title="Welcome" />
         <item
             android:id="@+id/nav_dashboard"
-            android:title="Dashboard" />
-        <item
-            android:id="@+id/nav_dashboard_gauges"
-            android:title="Gauge Dashboard" />
-        <item
-            android:id="@+id/nav_dashboard_hud"
-            android:title="HUD Dashboard" />
+            android:title="Drive" />
         <item
             android:id="@+id/nav_odometer"
             android:title="Odometer" />
         <item
             android:id="@+id/nav_faultcodes"
-            android:title="Fault Codes" />
-        <item
-            android:id="@+id/nav_sensors"
-            android:title="Car &amp; Sensors" />
+            android:title="Diagnose" />
+        <!-- "Car & Sensors" (the interactive car-anatomy diagram) is no longer a
+             drawer entry: it is reached from a launcher card at the top of the
+             Live Data screen, since both are about sensors. See openCarDiagram()
+             in MainActivity. -->
         <item
             android:id="@+id/nav_garage"
             android:title="Garage" />
@@ -37,25 +33,7 @@
     <group android:checkableBehavior="single">
         <item
             android:id="@+id/nav_live_all"
-            android:title="Live Data — All sensors" />
-        <item
-            android:id="@+id/nav_live_powertrain"
-            android:title="Live · Powertrain" />
-        <item
-            android:id="@+id/nav_live_thermal"
-            android:title="Live · Thermal" />
-        <item
-            android:id="@+id/nav_live_fuel"
-            android:title="Live · Fuel &amp; Air" />
-        <item
-            android:id="@+id/nav_live_electrical"
-            android:title="Live · Electrical" />
-        <item
-            android:id="@+id/nav_live_performance"
-            android:title="Live · Performance" />
-        <item
-            android:id="@+id/nav_live_emissions"
-            android:title="Live · Emissions" />
+            android:title="Live Data" />
     </group>
 
     <group android:checkableBehavior="single">
@@ -77,20 +55,17 @@
         <item
             android:id="@+id/nav_car_advisor"
             android:title="Help Me Buy a Car" />
-        <item
-            android:id="@+id/nav_scan_reports"
-            android:title="Scan Reports" />
+        <!-- "Scan Reports" is no longer its own drawer entry: it is now the
+             "History" tab inside the Diagnose hub (nav_faultcodes), alongside the
+             "Scan" (Fault Codes) tab. Full Scans still save there. -->
     </group>
 
     <item
         android:id="@+id/nav_debuglog"
         android:title="Debug Log" />
-    <item
-        android:id="@+id/nav_simulator"
-        android:title="Simulator Mode (no car needed)" />
-    <item
-        android:id="@+id/nav_selftest"
-        android:title="Run Self-Test" />
+    <!-- Simulator Mode + Run Self-Test removed from the drawer (end users don't
+         need them). Both still work headlessly via the debug intents (action
+         extra "simulator" / "selftest") handled in MainActivity.handleDebugIntent(). -->
     <item
         android:id="@+id/nav_fuel_probe"
         android:title="Probe Fuel Level (BMW UDS)" />

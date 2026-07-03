@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Unified "Diagnose" hub. What used to be two separate drawer entries
+    (Fault Codes / Scan Reports) is now ONE screen with a two-tab toggle: a row
+    of two chips picks the view, and the chosen sub-screen's existing layout is
+    inflated into diagnoseHost below. Both original controllers are reused
+    verbatim — only one is attached at a time — so the Fault Codes "save to Scan
+    Reports" behaviour keeps working and the History tab shows those saves when
+    opened. The chips mirror the Drive / Live Data chips styled in code by
+    MainActivity.styleDiagnoseChips (status_pill_ok when active, status_chip_neutral
+    when idle).
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/surfaceBase"
+    android:orientation="vertical">
+
+    <!-- Tab toggle row. Chips are wired + restyled in MainActivity so the
+         active one uses the accent pill and the other stays neutral. -->
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="none"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="8dp">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/chipDiagnoseScan"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp"
+                android:text="Scan"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <TextView
+                android:id="@+id/chipDiagnoseHistory"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp"
+                android:text="History"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:clickable="true"
+                android:focusable="true" />
+        </LinearLayout>
+    </HorizontalScrollView>
+
+    <!-- Host for the chosen sub-screen layout. showDiagnoseTab clears this and
+         inflates layout_faultcodes / layout_scan_reports into it, then attaches
+         the matching existing controller. -->
+    <FrameLayout
+        android:id="@+id/diagnoseHost"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+</LinearLayout>

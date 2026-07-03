@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Unified "Drive" screen. What used to be three separate drawer entries
+    (Dashboard / Gauge Dashboard / HUD Dashboard) is now ONE screen with a
+    style toggle: a row of three chips picks the presentation, and the chosen
+    sub-dashboard's existing layout is inflated into driveHost below. The three
+    original controllers are reused verbatim — only one is attached at a time —
+    so live-value forwarding (which dispatches by isAttached) keeps working with
+    no change. The chips mirror the Live Data category chips styled in code by
+    MainActivity.styleDriveChip (status_pill_ok when active, status_chip_neutral
+    when idle).
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/surfaceBase"
+    android:orientation="vertical">
+
+    <!-- Style toggle row. Chips are wired + restyled in MainActivity so the
+         active one uses the accent pill and the others stay neutral. -->
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="none"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="8dp">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/chipStyleModern"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp"
+                android:text="Modern"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <TextView
+                android:id="@+id/chipStyleGauges"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp"
+                android:text="Gauges"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <TextView
+                android:id="@+id/chipStyleHud"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp"
+                android:text="HUD"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:clickable="true"
+                android:focusable="true" />
+        </LinearLayout>
+    </HorizontalScrollView>
+
+    <!-- Host for the chosen sub-dashboard layout. showDriveStyle clears this and
+         inflates layout_dashboard / layout_gauge_dashboard / layout_hud_dashboard
+         into it, then attaches the matching existing controller. -->
+    <FrameLayout
+        android:id="@+id/driveHost"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+</LinearLayout>

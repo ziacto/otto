@@ -57,6 +57,7 @@ public class MainActivity extends AppCompatActivity {
     // button after a single drawer navigation.
     private static final int SCREEN_NONE = 0;
     private static final int SCREEN_CONNECT_FLOW = -2; // not a drawer item, needs its own id
+    private static final int SCREEN_CAR_DIAGRAM = -3;  // reachable from Live Data, not a drawer item
     private int activeScreenId = SCREEN_NONE;
     private Runnable activeDetach = null;
     // Attaches are posted (they need the view laid out); the generation stamp
@@ -112,7 +113,10 @@ public class MainActivity extends AppCompatActivity {
 
     // Poll-group definitions live in PollGroup.java so the transport layer can
     // reference them without depending on this Activity class.
-    private PollGroup currentGroup = PollGroup.GROUP_DASHBOARD;
+    // volatile: written on the UI thread (screen nav + Live Data category chips +
+    // Drive style toggle) and read every cycle on the poll thread via the
+    // interval/command Suppliers — same cross-thread hazard as lastCoolant/lastOil.
+    private volatile PollGroup currentGroup = PollGroup.GROUP_DASHBOARD;
 
     private void updateConnectMenuTitle(MenuItem item) {
         if (obdManager != null && obdManager.isConnected()) {
@@ -259,21 +263,22 @@ public class MainActivity extends AppCompatActivity {
                 setActiveScreen(id, newView, this::wireWelcomeScreen, this::stopWelcomeAnimators);
 
             } else if (id == R.id.nav_dashboard) {
-                newView = getLayoutInflater().inflate(R.layout.layout_dashboard, null);
-                title = "Dashboard (730li)";
-                currentGroup = PollGroup.GROUP_DASHBOARD;
-                restartIfConnected();
-                // Keep-screen-on while Dashboard is up (app is portrait-locked
-                // in the manifest per user preference).
+                // Unified "Drive" screen: one host with a Modern/Gauges/HUD style
+                // toggle. We reuse all three original dashboard controllers and
+                // attach only the selected one — showDriveStyle swaps them (and
+                // the poll group) in-place. The attach below wires the toggle
+                // chips and shows the default style; the detach tears down ALL
+                // three sub-controllers (idempotent) so leaving Drive always
+                // cleans up whichever style was live.
+                newView = getLayoutInflater().inflate(R.layout.layout_drive, null);
+                title = "Drive";
+                // Keep-screen-on while Drive is up (app is portrait-locked in the
+                // manifest per user preference). Poll group + restart happen per
+                // style inside showDriveStyle.
                 getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
                 setActiveScreen(id, newView,
-                        v -> dashboardController.attach(v, MainActivity.this, obdManager),
-                        dashboardController::detach);
-
-            } else if (id == R.id.nav_sensors) {
-                newView = getLayoutInflater().inflate(R.layout.layout_sensors, null);
-                title = "Car & Sensors";
-                setActiveScreen(id, newView, sensorsController::attach, sensorsController::detach);
+                        this::wireDriveScreen,
+                        this::detachDriveControllers);
 
             } else if (id == R.id.nav_garage) {
                 newView = getLayoutInflater().inflate(R.layout.layout_garage, null);
@@ -281,48 +286,42 @@ public class MainActivity extends AppCompatActivity {
                 setActiveScreen(id, newView, garageController::attach, garageController::detach);
 
             } else if (id == R.id.nav_faultcodes) {
-                newView = getLayoutInflater().inflate(R.layout.layout_faultcodes, null);
-                title = "Fault Codes / Reset";
-                setActiveScreen(id, newView, faultCodesController::attach, faultCodesController::detach);
+                // Unified "Diagnose" hub: one host with a Scan/History tab toggle.
+                // We reuse both original controllers and attach only the selected
+                // one — showDiagnoseTab swaps them in-place. The attach below wires
+                // the toggle chips and shows the default tab (Scan); the detach
+                // tears down BOTH sub-controllers (idempotent) so leaving Diagnose
+                // always cleans up whichever tab was live. Neither sub-controller is
+                // a live-value screen, so no poll group / restart is needed here.
+                newView = getLayoutInflater().inflate(R.layout.layout_diagnose, null);
+                title = "Diagnose";
+                setActiveScreen(id, newView,
+                        this::wireDiagnoseScreen,
+                        this::detachDiagnoseControllers);
 
             } else if (id == R.id.nav_debuglog) {
                 newView = getLayoutInflater().inflate(R.layout.layout_debuglog, null);
                 title = "Debug Log";
                 setActiveScreen(id, newView, debugLogController::attach, debugLogController::detach);
 
-            } else if (id == R.id.nav_live_all || id == R.id.nav_live_powertrain
-                    || id == R.id.nav_live_thermal || id == R.id.nav_live_fuel
-                    || id == R.id.nav_live_electrical || id == R.id.nav_live_performance
-                    || id == R.id.nav_live_emissions) {
+            } else if (id == R.id.nav_live_all) {
                 newView = getLayoutInflater().inflate(R.layout.layout_livedata, null);
-                SensorInfo.Category cat = null;
-                PollGroup group = PollGroup.GROUP_DASHBOARD;
-                if (id == R.id.nav_live_powertrain) {
-                    cat = SensorInfo.Category.POWERTRAIN; group = PollGroup.GROUP_LIVE_POWERTRAIN;
-                    title = "Live · Powertrain";
-                } else if (id == R.id.nav_live_thermal) {
-                    cat = SensorInfo.Category.THERMAL; group = PollGroup.GROUP_LIVE_THERMAL;
-                    title = "Live · Thermal";
-                } else if (id == R.id.nav_live_fuel) {
-                    cat = SensorInfo.Category.FUEL; group = PollGroup.GROUP_LIVE_FUEL;
-                    title = "Live · Fuel & Air";
-                } else if (id == R.id.nav_live_electrical) {
-                    cat = SensorInfo.Category.ELECTRICAL; group = PollGroup.GROUP_LIVE_ELECTRICAL;
-                    title = "Live · Electrical";
-                } else if (id == R.id.nav_live_performance) {
-                    cat = SensorInfo.Category.PERFORMANCE; group = PollGroup.GROUP_LIVE_PERFORMANCE;
-                    title = "Live · Performance";
-                } else if (id == R.id.nav_live_emissions) {
-                    cat = SensorInfo.Category.EMISSIONS; group = PollGroup.GROUP_LIVE_EMISSIONS;
-                    title = "Live · Emissions";
-                } else {
-                    title = "Live Data — All sensors";
-                }
-                currentGroup = group;
+                title = "Live Data";
+                // Open on "All" (no category filter) with the broad dashboard
+                // poll group. The in-screen chips then narrow both the visible
+                // rows AND the poll group via the switcher lambda below, so we
+                // no longer need a drawer item per car system.
+                currentGroup = PollGroup.GROUP_DASHBOARD;
                 restartIfConnected();
-                final SensorInfo.Category presetCat = cat;
+                // Launcher card → the interactive Car & Sensors diagram. That
+                // screen is unique content (not a duplicate of this value list),
+                // so its former drawer entry now lives here. Wired directly on the
+                // inflated view; openCarDiagram() handles the screen swap.
+                View openDiagram = newView.findViewById(R.id.btnOpenCarDiagram);
+                if (openDiagram != null) openDiagram.setOnClickListener(v -> openCarDiagram());
                 setActiveScreen(id, newView,
-                        v -> liveDataController.attach(v, presetCat),
+                        v -> liveDataController.attach(v, null,
+                                g -> { currentGroup = g; restartIfConnected(); }),
                         liveDataController::detach);
 
             } else if (id == R.id.nav_analytics) {
@@ -351,26 +350,6 @@ public class MainActivity extends AppCompatActivity {
                         v -> serviceController.attach(v, obdManager),
                         serviceController::detach);
 
-            } else if (id == R.id.nav_dashboard_gauges) {
-                newView = getLayoutInflater().inflate(R.layout.layout_gauge_dashboard, null);
-                title = "Gauge Dashboard";
-                currentGroup = PollGroup.GROUP_DASHBOARD;
-                restartIfConnected();
-                getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-                setActiveScreen(id, newView,
-                        v -> gaugeDashController.attach(v, obdManager),
-                        gaugeDashController::detach);
-
-            } else if (id == R.id.nav_dashboard_hud) {
-                newView = getLayoutInflater().inflate(R.layout.layout_hud_dashboard, null);
-                title = "HUD Dashboard";
-                currentGroup = PollGroup.GROUP_HUD_DASHBOARD;
-                restartIfConnected();
-                getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-                setActiveScreen(id, newView,
-                        v -> hudDashController.attach(v, obdManager),
-                        hudDashController::detach);
-
             } else if (id == R.id.nav_odometer) {
                 newView = getLayoutInflater().inflate(R.layout.layout_odometer, null);
                 title = "Odometer";
@@ -392,12 +371,6 @@ public class MainActivity extends AppCompatActivity {
                         v -> carAdvisorController.attach(v, MainActivity.this),
                         carAdvisorController::detach);
 
-            } else if (id == R.id.nav_scan_reports) {
-                newView = getLayoutInflater().inflate(R.layout.layout_scan_reports, null);
-                title = "Scan Reports";
-                setActiveScreen(id, newView,
-                        v -> scanReportsController.attach(v, MainActivity.this),
-                        scanReportsController::detach);
             }
 
             if (newView != null) {
@@ -455,28 +428,6 @@ public class MainActivity extends AppCompatActivity {
                     .show();
             return true;
         }
-        if (id == R.id.nav_simulator) {
-            Toast.makeText(this, "Starting simulator…", Toast.LENGTH_SHORT).show();
-            new Thread(() -> {
-                try {
-                    obdManager.connectSimulator();
-                    runOnUiThread(() -> {
-                        Toast.makeText(this, "Simulator running — open Dashboard",
-                                Toast.LENGTH_LONG).show();
-                        MenuItem dash = navigationView.getMenu().findItem(R.id.nav_dashboard);
-                        if (dash != null) {
-                            navigationView.getMenu()
-                                    .performIdentifierAction(dash.getItemId(), 0);
-                        }
-                    });
-                } catch (Exception e) {
-                    runOnUiThread(() -> Toast.makeText(this,
-                            "Simulator failed: " + e.getMessage(),
-                            Toast.LENGTH_LONG).show());
-                }
-            }, "SimulatorBoot").start();
-            return true;
-        }
         if (id == R.id.nav_fuel_probe) {
             Toast.makeText(this, "Probing fuel-level DIDs — this takes ~15 s…",
                     Toast.LENGTH_LONG).show();
@@ -491,20 +442,6 @@ public class MainActivity extends AppCompatActivity {
                                 .setPositiveButton("OK", null)
                                 .show());
             }, "FuelProbeUI").start();
-            return true;
-        }
-        if (id == R.id.nav_selftest) {
-            Toast.makeText(this, "Running self-test (about 12 s)…",
-                    Toast.LENGTH_SHORT).show();
-            new Thread(() -> {
-                SelfTestRunner.Report r = SelfTestRunner.run(this);
-                runOnUiThread(() ->
-                        new androidx.appcompat.app.AlertDialog.Builder(this)
-                                .setTitle(r.allPassed ? "Self-test PASSED" : "Self-test FAILED")
-                                .setMessage(r.text)
-                                .setPositiveButton("OK", null)
-                                .show());
-            }, "SelfTest").start();
             return true;
         }
         if (id == R.id.nav_bt_reset) {
@@ -726,6 +663,203 @@ public class MainActivity extends AppCompatActivity {
                 openConnectFlow();
             }
         });
+    }
+
+    // --- Drive screen (unified Modern / Gauges / HUD dashboards) ---
+
+    /** The three presentation styles the single Drive screen can show. */
+    private enum DriveStyle { MODERN, GAUGES, HUD }
+
+    /** Which style is currently inflated into driveHost, or null when none. */
+    private DriveStyle activeDriveStyle = null;
+
+    /**
+     * Attach callback for the Drive screen: wire the three style-toggle chips and
+     * show the default (Modern). Reset {@link #activeDriveStyle} first so the
+     * default always applies on a fresh visit rather than being skipped by a
+     * stale value left over from a previous Drive session.
+     */
+    private void wireDriveScreen(View root) {
+        activeDriveStyle = null;
+        View chipModern = root.findViewById(R.id.chipStyleModern);
+        View chipGauges = root.findViewById(R.id.chipStyleGauges);
+        View chipHud = root.findViewById(R.id.chipStyleHud);
+        if (chipModern != null) chipModern.setOnClickListener(v -> showDriveStyle(root, DriveStyle.MODERN));
+        if (chipGauges != null) chipGauges.setOnClickListener(v -> showDriveStyle(root, DriveStyle.GAUGES));
+        if (chipHud != null) chipHud.setOnClickListener(v -> showDriveStyle(root, DriveStyle.HUD));
+        showDriveStyle(root, DriveStyle.MODERN);
+    }
+
+    /**
+     * Swap the visible sub-dashboard inside the Drive host. Re-tapping the active
+     * chip is a no-op. Otherwise: detach the currently-live sub-controller, clear
+     * the host, inflate the matching sub-layout, attach its existing controller,
+     * set the poll group (Modern & Gauges = the broad dashboard group; HUD its
+     * own leaner group), kick the poll thread, and restyle the chips. Because
+     * updateUI dispatches by isAttached(), attaching only the chosen controller
+     * is enough for live values to flow to it with no change to updateUI.
+     */
+    private void showDriveStyle(View driveRoot, DriveStyle style) {
+        if (style == activeDriveStyle) return;
+        FrameLayout host = driveRoot.findViewById(R.id.driveHost);
+        if (host == null) return;
+
+        // Tear down the outgoing sub-controller BEFORE clearing the host so it
+        // stops receiving values against views that are about to be removed.
+        detachDriveControllers();
+        host.removeAllViews();
+
+        int subLayout;
+        switch (style) {
+            case GAUGES: subLayout = R.layout.layout_gauge_dashboard; break;
+            case HUD:    subLayout = R.layout.layout_hud_dashboard;   break;
+            case MODERN:
+            default:     subLayout = R.layout.layout_dashboard;       break;
+        }
+        View sub = getLayoutInflater().inflate(subLayout, host, false);
+        host.addView(sub);
+
+        switch (style) {
+            case GAUGES:
+                currentGroup = PollGroup.GROUP_DASHBOARD;
+                gaugeDashController.attach(sub, obdManager);
+                break;
+            case HUD:
+                currentGroup = PollGroup.GROUP_HUD_DASHBOARD;
+                hudDashController.attach(sub, obdManager);
+                break;
+            case MODERN:
+            default:
+                currentGroup = PollGroup.GROUP_DASHBOARD;
+                dashboardController.attach(sub, MainActivity.this, obdManager);
+                break;
+        }
+        restartIfConnected();
+
+        activeDriveStyle = style;
+        styleDriveChips(driveRoot, style);
+    }
+
+    /** Highlight the active toggle chip and dim the other two. */
+    private void styleDriveChips(View driveRoot, DriveStyle active) {
+        styleDriveChip(driveRoot.findViewById(R.id.chipStyleModern), active == DriveStyle.MODERN);
+        styleDriveChip(driveRoot.findViewById(R.id.chipStyleGauges), active == DriveStyle.GAUGES);
+        styleDriveChip(driveRoot.findViewById(R.id.chipStyleHud), active == DriveStyle.HUD);
+    }
+
+    /** Apply the same active/idle chip look the Live Data category chips use. */
+    private void styleDriveChip(View chip, boolean active) {
+        if (!(chip instanceof TextView)) return;
+        chip.setBackgroundResource(active
+                ? R.drawable.status_pill_ok
+                : R.drawable.status_chip_neutral);
+        ((TextView) chip).setTextColor(active ? 0xFFFFFFFF : 0xFF9AA0AC);
+    }
+
+    /**
+     * Detach ALL three sub-dashboard controllers. Each detach is null-safe and
+     * idempotent, so calling this when only one (or none) is attached is fine.
+     * Used both when switching styles and as the Drive screen's detach on nav.
+     */
+    private void detachDriveControllers() {
+        dashboardController.detach();
+        gaugeDashController.detach();
+        hudDashController.detach();
+        activeDriveStyle = null;
+    }
+
+    /** The two tabs the single Diagnose hub can show. */
+    private enum DiagnoseTab { SCAN, HISTORY }
+
+    /** Which tab is currently inflated into diagnoseHost, or null when none. */
+    private DiagnoseTab activeDiagnoseTab = null;
+
+    /**
+     * Attach callback for the Diagnose hub: wire the two tab-toggle chips and show
+     * the default tab (Scan = Fault Codes). Reset {@link #activeDiagnoseTab} first
+     * so the default always applies on a fresh visit rather than being skipped by a
+     * stale value left over from a previous Diagnose session.
+     */
+    private void wireDiagnoseScreen(View root) {
+        activeDiagnoseTab = null;
+        View chipScan = root.findViewById(R.id.chipDiagnoseScan);
+        View chipHistory = root.findViewById(R.id.chipDiagnoseHistory);
+        if (chipScan != null) chipScan.setOnClickListener(v -> showDiagnoseTab(root, DiagnoseTab.SCAN));
+        if (chipHistory != null) chipHistory.setOnClickListener(v -> showDiagnoseTab(root, DiagnoseTab.HISTORY));
+        showDiagnoseTab(root, DiagnoseTab.SCAN);
+    }
+
+    /**
+     * Swap the visible sub-screen inside the Diagnose host. Re-tapping the active
+     * chip is a no-op. Otherwise: detach the currently-live sub-controller, clear
+     * the host, inflate the matching sub-layout, attach its existing controller,
+     * and restyle the chips. Neither sub-controller is a live-value screen, so
+     * there is no poll group / restart to manage here (the old standalone branches
+     * didn't touch them either).
+     */
+    private void showDiagnoseTab(View diagnoseRoot, DiagnoseTab tab) {
+        if (tab == activeDiagnoseTab) return;
+        FrameLayout host = diagnoseRoot.findViewById(R.id.diagnoseHost);
+        if (host == null) return;
+
+        // Tear down the outgoing sub-controller BEFORE clearing the host so it
+        // stops touching views that are about to be removed.
+        detachDiagnoseControllers();
+        host.removeAllViews();
+
+        int subLayout = (tab == DiagnoseTab.HISTORY)
+                ? R.layout.layout_scan_reports
+                : R.layout.layout_faultcodes;
+        View sub = getLayoutInflater().inflate(subLayout, host, false);
+        host.addView(sub);
+
+        if (tab == DiagnoseTab.HISTORY) {
+            scanReportsController.attach(sub, MainActivity.this);
+        } else {
+            faultCodesController.attach(sub);
+        }
+
+        activeDiagnoseTab = tab;
+        styleDiagnoseChips(diagnoseRoot, tab);
+    }
+
+    /** Highlight the active toggle chip and dim the other. */
+    private void styleDiagnoseChips(View diagnoseRoot, DiagnoseTab active) {
+        styleDriveChip(diagnoseRoot.findViewById(R.id.chipDiagnoseScan), active == DiagnoseTab.SCAN);
+        styleDriveChip(diagnoseRoot.findViewById(R.id.chipDiagnoseHistory), active == DiagnoseTab.HISTORY);
+    }
+
+    /**
+     * Detach BOTH Diagnose sub-controllers. Each detach is null-safe and
+     * idempotent, so calling this when only one (or none) is attached is fine.
+     * Used both when switching tabs and as the Diagnose hub's detach on nav.
+     */
+    private void detachDiagnoseControllers() {
+        faultCodesController.detach();
+        scanReportsController.detach();
+        activeDiagnoseTab = null;
+    }
+
+    /**
+     * Show the interactive Car & Sensors diagram (tappable car-anatomy views with
+     * per-sensor location, function, failure symptoms, and related DTCs). This
+     * screen used to be its own "Car & Sensors" drawer entry; the entry was
+     * removed to de-clutter the drawer, but the screen is unique content — it does
+     * NOT duplicate the Live Data value list — so it is now launched from a card
+     * at the top of the Live Data screen. Mirrors the drawer nav path: detach the
+     * current screen, inflate, attach via the single-active-screen machinery.
+     */
+    private void openCarDiagram() {
+        detachActiveController();
+        getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        View newView = getLayoutInflater().inflate(R.layout.layout_sensors, null);
+        setActiveScreen(SCREEN_CAR_DIAGRAM, newView,
+                sensorsController::attach, sensorsController::detach);
+        FrameLayout container = findViewById(R.id.content_container);
+        container.removeAllViews();
+        container.addView(newView);
+        TextView tvTitle = findViewById(R.id.tvTitle);
+        if (tvTitle != null) tvTitle.setText("Car & Sensors");
     }
 
     /**

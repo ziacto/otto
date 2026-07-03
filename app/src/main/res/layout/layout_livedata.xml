@@ -26,6 +26,47 @@
         android:textSize="11sp"
         android:paddingBottom="8dp" />
 
+    <!--
+        Launcher for the interactive Car & Sensors diagram. That screen used to be
+        its own drawer entry, but it is UNIQUE content — a tappable car-anatomy
+        diagram (Side/Front/Top/Engine) where each pin shows a sensor's location,
+        what it does, failure symptoms, and related fault codes. It does NOT
+        duplicate this value list, so rather than delete it we surface it here:
+        Live Data is the natural place to also ask "where does this sensor
+        physically sit on the car?". Click is wired in MainActivity's Live Data
+        attach block, which routes to openCarDiagram().
+    -->
+    <LinearLayout
+        android:id="@+id/btnOpenCarDiagram"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@drawable/card_bg_accent"
+        android:padding="12dp"
+        android:layout_marginBottom="8dp"
+        android:clickable="true"
+        android:focusable="true">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Car &amp; Sensors diagram\nTap a sensor on the car to see what it does, failure symptoms, and fault codes."
+            android:textColor="@color/textPrimary"
+            android:textSize="12sp"
+            android:lineSpacingExtra="2dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="›"
+            android:textColor="@color/accentColor"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:paddingStart="8dp" />
+    </LinearLayout>
+
     <!-- Category filter chips -->
     <HorizontalScrollView
         android:layout_width="match_parent"

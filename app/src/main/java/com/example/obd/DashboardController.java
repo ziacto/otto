@@ -403,6 +403,15 @@ public class DashboardController {
 
     private String formatValue(String name, double value) {
         switch (name) {
+            // Whole-number readings — a real instrument cluster never shows a
+            // fractional rev count or speed. Keeping RPM/Speed integer also stops
+            // the hero number ("1894.8") from wrapping to a second line.
+            case "RPM":
+            case "Vehicle Speed":
+            case "Coolant Temp":
+            case "Oil Temp":
+            case "Intake Air Temp":
+            case "Ambient Temp":
             case "Engine Load":
             case "Throttle Position":
             case "Fuel Level":
