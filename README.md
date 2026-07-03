@@ -9,8 +9,10 @@ Built and tuned for the BMW E65 730li (N52) but works with any OBD-II vehicle
 that speaks ISO 15765-4 CAN. Includes AI-assisted repair estimation with
 follow-up chat grounded in live web search.
 
-Package: `app.otto.car`  ·  Min SDK: 24 (Android 7.0)  ·  Target SDK: 34
-Language: Java only, no Kotlin, no Compose.
+Package: `app.otto.car`  ·  Min SDK: 24 (Android 7.0)  ·  Target SDK: 36
+Language: Java, no Compose. One small Kotlin file (`CarHeroSceneView.kt`)
+is required by the SceneView 3D renderer on the welcome screen; everything
+else is Java.
 
 ---
 
@@ -113,8 +115,7 @@ MainActivity
  ├── AI stack
  │    ├── AiVisionProvider         — interface: analyzeDamage + chatFollowup
  │    ├── GeminiVisionProvider     — Gemini 2.5 Flash REST client
- │    ├── AiSettings               — API key resolver + per-device quota
- │    └── EmbeddedAiKey            — obfuscated bundled key (see AI setup)
+ │    └── AiSettings               — API key resolver + per-device quota
  └── Utilities
       ├── ObdLogger                — ring buffer + rotating file sink
       ├── CrashHandler             — dumps stacktrace + recent logs on crash
@@ -427,16 +428,17 @@ build any headless soak test you want without a physical adapter.
 ./gradlew :app:assembleRelease         # release APK (needs signing config)
 ```
 
-The project uses Kotlin DSL (`build.gradle.kts`) at the module level but
-zero Kotlin source. Room's annotation processor runs via `annotationProcessor`
+The project uses Kotlin DSL (`build.gradle.kts`) at the module level and is
+Java apart from a single Kotlin file (`CarHeroSceneView.kt`) that the SceneView
+3D renderer requires. Room's annotation processor runs via `annotationProcessor`
 (no kapt).
 
 ### Version compatibility
 
 - Gradle: whatever the wrapper ships with (`./gradlew --version`)
 - AGP: 8.x
-- Java target: 17
-- compileSdk / targetSdk: 34
+- Java target: 11
+- compileSdk / targetSdk: 36
 - minSdk: 24
 
 ---
@@ -470,5 +472,8 @@ See `memory/project_roadmap.md` for the full 12-feature list.
 - Trip and analytics data are not synced across devices — local only.
 - AI answers may cite sources that require login (paid workshops manuals,
   etc.). Otto surfaces the URL; opening it is up to the user's browser.
-- The bundled Gemini key is obfuscated, not encrypted. Do not use this app
-  as a template for anything security-sensitive.
+- The Gemini key is compiled into `BuildConfig` from `local.properties` at
+  build time. If you ship a release APK with a key baked in, it can be
+  recovered by anyone who reverse-engineers the APK — the real protection is
+  Google's per-project daily quota plus the backend-proxy migration on the
+  roadmap. Do not use this app as a template for anything security-sensitive.
