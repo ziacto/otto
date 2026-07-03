@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Share / upload — "Share Mechanic Report" glyph. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="22dp"
+    android:height="22dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:strokeColor="#4FB4EF"
+        android:strokeWidth="1.7"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000"
+        android:pathData="M12,3 L12,14 M8.5,6.5 L12,3 L15.5,6.5 M6,11 H5 C4.4,11 4,11.4 4,12 V19 C4,19.6 4.4,20 5,20 H19 C19.6,20 20,19.6 20,19 V12 C20,11.4 19.6,11 19,11 H18" />
+</vector>

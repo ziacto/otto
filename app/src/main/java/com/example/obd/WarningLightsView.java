@@ -53,6 +53,11 @@ public class WarningLightsView extends LinearLayout {
         void onClick(Light light, State state, String detail);
     }
 
+    // Subtle default tile — dark card fill with a faint hairline, matching the
+    // Drive dashboard's metric tiles. State colors (OK/WARN/FAULT) tint over this.
+    private static final int DEFAULT_FILL = 0xFF141826;
+    private static final int DEFAULT_STROKE = 0xFF242A3D;
+
     private final Map<Light, View> badges = new LinkedHashMap<>();
     private final Map<Light, State> states = new LinkedHashMap<>();
     private final Map<Light, String> details = new LinkedHashMap<>();
@@ -65,7 +70,7 @@ public class WarningLightsView extends LinearLayout {
     private void init() {
         setOrientation(HORIZONTAL);
         setGravity(Gravity.CENTER);
-        setPadding(dp(4), dp(2), dp(4), dp(2));
+        setPadding(dp(2), dp(2), dp(2), dp(2));
         for (Light l : Light.values()) addBadge(l);
     }
 
@@ -75,37 +80,38 @@ public class WarningLightsView extends LinearLayout {
         col.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 0, LayoutParams.WRAP_CONTENT, 1f);
-        lp.setMargins(dp(2), 0, dp(2), 0);
+        lp.setMargins(dp(3), 0, dp(3), 0);
         col.setLayoutParams(lp);
-        col.setPadding(dp(4), dp(6), dp(4), dp(6));
-        col.setBackground(makeBg(0x33333333, 0xFF666666));
+        col.setMinimumHeight(dp(74));
+        col.setPadding(dp(4), dp(10), dp(4), dp(10));
+        col.setBackground(makeBg(DEFAULT_FILL, DEFAULT_STROKE));
         col.setClickable(true);
         col.setFocusable(true);
 
         TextView icon = new TextView(getContext());
         icon.setText(light.icon);
-        icon.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+        icon.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
         icon.setGravity(Gravity.CENTER);
         col.addView(icon);
 
         TextView label = new TextView(getContext());
         label.setText(light.label);
         label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 8);
-        label.setLetterSpacing(0.08f);
+        label.setLetterSpacing(0.06f);
         label.setTypeface(Typeface.DEFAULT_BOLD);
-        label.setTextColor(0xCCFFFFFF);
+        label.setTextColor(0x99FFFFFF);
         label.setGravity(Gravity.CENTER);
-        label.setPadding(0, dp(2), 0, 0);
+        label.setPadding(0, dp(5), 0, 0);
         col.addView(label);
 
         TextView valueChip = new TextView(getContext());
         valueChip.setId(View.generateViewId());
         valueChip.setTag("value");
-        valueChip.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
+        valueChip.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
         valueChip.setTypeface(Typeface.DEFAULT_BOLD);
         valueChip.setTextColor(0xFFFFFFFF);
         valueChip.setGravity(Gravity.CENTER);
-        valueChip.setPadding(0, dp(2), 0, 0);
+        valueChip.setPadding(0, dp(3), 0, 0);
         valueChip.setVisibility(GONE);
         col.addView(valueChip);
 
@@ -124,7 +130,7 @@ public class WarningLightsView extends LinearLayout {
         d.setShape(GradientDrawable.RECTANGLE);
         d.setColor(fill);
         d.setStroke(dp(1), stroke);
-        d.setCornerRadius(dp(6));
+        d.setCornerRadius(dp(12));
         return d;
     }
 
@@ -137,12 +143,12 @@ public class WarningLightsView extends LinearLayout {
         states.put(light, state);
         if (detail != null) details.put(light, detail);
         int fill, stroke;
-        int iconColor = 0xFFFFFFFF;
+        int iconColor;
         switch (state) {
-            case OK:      fill = 0x331DB95E; stroke = 0xFF1DB95E; break;
-            case WARN:    fill = 0x33FFB300; stroke = 0xFFFFB300; iconColor = 0xFFFFB300; break;
-            case FAULT:   fill = 0x33F44336; stroke = 0xFFF44336; iconColor = 0xFFF44336; break;
-            default:      fill = 0x33333333; stroke = 0xFF666666;
+            case OK:      fill = 0x1F1DB95E; stroke = 0x661DB95E; iconColor = 0xFF3DDC84; break;
+            case WARN:    fill = 0x1FFFB300; stroke = 0x66FFB300; iconColor = 0xFFFFB300; break;
+            case FAULT:   fill = 0x1FF44336; stroke = 0x66F44336; iconColor = 0xFFFF6E6E; break;
+            default:      fill = DEFAULT_FILL; stroke = DEFAULT_STROKE; iconColor = 0xB3FFFFFF;
         }
         v.setBackground(makeBg(fill, stroke));
         TextView iconView = (TextView) ((LinearLayout) v).getChildAt(0);
@@ -154,8 +160,9 @@ public class WarningLightsView extends LinearLayout {
         } else {
             valueChip.setText(valueChipText);
             valueChip.setVisibility(VISIBLE);
-            valueChip.setTextColor(state == State.FAULT ? 0xFFF44336
-                    : (state == State.WARN ? 0xFFFFB300 : 0xFFFFFFFF));
+            valueChip.setTextColor(state == State.FAULT ? 0xFFFF6E6E
+                    : (state == State.WARN ? 0xFFFFB300
+                    : (state == State.OK ? 0xFF3DDC84 : 0xFFFFFFFF)));
         }
     }
 

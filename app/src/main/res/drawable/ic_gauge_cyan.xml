@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Circular gauge / speedometer — cyan accent glyph on the hero RPM & Speed cards. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="22dp"
+    android:height="22dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:strokeColor="#4ADEDA"
+        android:strokeWidth="2"
+        android:fillColor="#00000000"
+        android:pathData="M12,4A8,8 0 1,0 12,20A8,8 0 1,0 12,4" />
+    <path
+        android:strokeColor="#4ADEDA"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M12,12L15.5,8.5" />
+    <path
+        android:fillColor="#4ADEDA"
+        android:pathData="M12,10.6A1.4,1.4 0 1,0 12,13.4A1.4,1.4 0 1,0 12,10.6" />
+</vector>

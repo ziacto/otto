@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Tappable icon tile in the Diagnose grid (Stored / Pending / …). -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_pressed="true">
+        <shape android:shape="rectangle">
+            <solid android:color="#182238" />
+            <corners android:radius="14dp" />
+            <stroke android:width="1dp" android:color="#3E7FC4" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#111A2C" />
+            <corners android:radius="14dp" />
+            <stroke android:width="1dp" android:color="#20293F" />
+        </shape>
+    </item>
+</selector>

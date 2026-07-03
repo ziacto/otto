@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Decorative cyan waveform accent under the hero gauge labels — evokes a live
+     signal trace. Purely cosmetic; sits between the label and the big number. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="140dp"
+    android:height="20dp"
+    android:viewportWidth="140"
+    android:viewportHeight="20">
+    <path
+        android:strokeColor="#3FB8E6"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000"
+        android:pathData="M0,12 C10,12 14,5 22,5 C30,5 33,14 42,14 C51,14 54,7 63,7 C72,7 75,13 84,13 C93,13 97,6 106,6 C115,6 119,12 128,12 C134,12 138,10 140,10" />
+</vector>

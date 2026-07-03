@@ -6,7 +6,6 @@ import android.app.AlertDialog;
 import android.graphics.Color;
 import android.view.View;
 import android.view.animation.DecelerateInterpolator;
-import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -87,9 +86,9 @@ public class DashboardController {
         // first reading because the EMA starts from this prior.
         seedFromLastValues();
 
-        Button btnReset = view.findViewById(R.id.btnDashReset);
-        Button btnDtc   = view.findViewById(R.id.btnDashDtc);
-        Button btnVin   = view.findViewById(R.id.btnDashVin);
+        View btnReset = view.findViewById(R.id.btnDashReset);
+        View btnDtc   = view.findViewById(R.id.btnDashDtc);
+        View btnVin   = view.findViewById(R.id.btnDashVin);
 
         btnReset.setOnClickListener(v -> confirmReset());
         btnDtc.setOnClickListener(v -> readDtc());

@@ -931,24 +931,31 @@ public class MainActivity extends AppCompatActivity {
             int attempts = ObdService.getReconnectAttempts();
             String text;
             int bgRes;
+            int fgColor;
             if (connected) {
                 text = "● Connected";
-                bgRes = R.drawable.status_pill_ok;
+                bgRes = R.drawable.pill_outline_ok;
+                fgColor = 0xFF4BD089;
             } else if (st == ObdService.ConnectionState.CONNECTING) {
                 text = "● Searching…";
-                bgRes = R.drawable.status_pill_warn;
+                bgRes = R.drawable.pill_outline_warn;
+                fgColor = 0xFFF0B429;
             } else if (st == ObdService.ConnectionState.RECONNECTING) {
                 text = "● Reconnecting " + attempts;
-                bgRes = R.drawable.status_pill_warn;
+                bgRes = R.drawable.pill_outline_warn;
+                fgColor = 0xFFF0B429;
             } else if (st == ObdService.ConnectionState.ERROR) {
                 text = "● Adapter unreachable";
-                bgRes = R.drawable.status_pill_err;
+                bgRes = R.drawable.pill_outline_err;
+                fgColor = 0xFFFF8A8E;
             } else {
                 text = "● Disconnected";
-                bgRes = R.drawable.status_pill_err;
+                bgRes = R.drawable.pill_outline_err;
+                fgColor = 0xFFFF8A8E;
             }
             connectionPill.setText(text);
             connectionPill.setBackgroundResource(bgRes);
+            connectionPill.setTextColor(fgColor);
         }
 
         if (thermalChip != null) {

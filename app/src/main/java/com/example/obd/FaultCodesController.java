@@ -7,7 +7,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.text.method.ScrollingMovementMethod;
 import android.view.View;
-import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -22,7 +21,9 @@ public class FaultCodesController {
     private final Handler ui = new Handler(Looper.getMainLooper());
     private View root;
 
-    private Button[] allButtons;
+    // Mixed widget types now — the grid entries are clickable LinearLayouts, the
+    // rest are Buttons. Held as View[] since setButtonsEnabled only toggles setEnabled().
+    private View[] allButtons;
 
     public FaultCodesController(ObdManagerFast obdManager) {
         this.obdManager = obdManager;
@@ -38,18 +39,18 @@ public class FaultCodesController {
         result.setText("Tap 'Run Full Scan' for a one-tap go/no-go verdict.\n\n"
                 + "Or read individual modes below if you know what you're looking for.");
 
-        Button bFull      = view.findViewById(R.id.btnFullScan);
-        Button bStored    = view.findViewById(R.id.btnReadStored);
-        Button bPending   = view.findViewById(R.id.btnReadPending);
-        Button bPermanent = view.findViewById(R.id.btnReadPermanent);
-        Button bFreeze    = view.findViewById(R.id.btnFreezeFrame);
-        Button bReady     = view.findViewById(R.id.btnReadiness);
-        Button bEcu       = view.findViewById(R.id.btnEcuInfo);
-        Button bClear     = view.findViewById(R.id.btnClearDtcs);
-        Button bDsc       = view.findViewById(R.id.btnScanDsc);
-        Button bEgs       = view.findViewById(R.id.btnScanEgs);
-        Button bShare     = view.findViewById(R.id.btnShareReport);
-        allButtons = new Button[]{ bFull, bStored, bPending, bPermanent, bFreeze, bReady, bEcu, bClear, bDsc, bEgs, bShare };
+        View bFull      = view.findViewById(R.id.btnFullScan);
+        View bStored    = view.findViewById(R.id.btnReadStored);
+        View bPending   = view.findViewById(R.id.btnReadPending);
+        View bPermanent = view.findViewById(R.id.btnReadPermanent);
+        View bFreeze    = view.findViewById(R.id.btnFreezeFrame);
+        View bReady     = view.findViewById(R.id.btnReadiness);
+        View bEcu       = view.findViewById(R.id.btnEcuInfo);
+        View bClear     = view.findViewById(R.id.btnClearDtcs);
+        View bDsc       = view.findViewById(R.id.btnScanDsc);
+        View bEgs       = view.findViewById(R.id.btnScanEgs);
+        View bShare     = view.findViewById(R.id.btnShareReport);
+        allButtons = new View[]{ bFull, bStored, bPending, bPermanent, bFreeze, bReady, bEcu, bClear, bDsc, bEgs, bShare };
 
         bFull.setOnClickListener(v      -> runFullScan(result));
         bStored.setOnClickListener(v    -> runDtcRead(3,    "STORED (confirmed)",         result));
@@ -551,7 +552,7 @@ public class FaultCodesController {
     private void setButtonsEnabled(boolean enabled) {
         ui.post(() -> {
             if (allButtons == null) return;
-            for (Button b : allButtons) if (b != null) b.setEnabled(enabled);
+            for (View b : allButtons) if (b != null) { b.setEnabled(enabled); b.setAlpha(enabled ? 1f : 0.5f); }
         });
     }
 }
